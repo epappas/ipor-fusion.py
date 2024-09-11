@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "ipor-fusion-sdk-python"
+name = "ipor-fusion-sdk"
 version = "0.1.0"
 description = ""
-authors = ["adam@ipor.io"]
+authors = ["Adam Mydlarz <amydlarz@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 eth-typing = "5.0.0"
 eth-abi = "5.1.0"
 web3 = "7.2.0"

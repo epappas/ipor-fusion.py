@@ -11,7 +11,7 @@ class AnvilTestContainerStarter:
     ANVIL_CONTAINER = os.getenv("ANVIL_TEST_CONTAINER", "ghcr.io/foundry-rs/foundry:nightly-af97b2c75cbcfaba23462998ae75ca082bcca1f2")
     FORK_URL = os.getenv(ANVIL_FORK_URL)
     if not FORK_URL:
-        raise ValueError("fork-url must not be null")
+        raise ValueError("Environment variable ANVIL_FORK_URL must be set")
     MAX_WAIT_SECONDS = 1201
     ANVIL_HTTP_PORT = 8545
     CHAIN_ID = 42161

@@ -9,12 +9,12 @@ from ipor_fusion_sdk.fuse.FluidInstadappSupplyFuse import FluidInstadappSupplyFu
 from ipor_fusion_sdk.fuse.GearboxSupplyFuse import GearboxSupplyFuse
 from ipor_fusion_sdk.operation.Supply import Supply
 from ipor_fusion_sdk.operation.Withdraw import Withdraw
-from tests.constants import ANVIL_WALLET_PRIVATE_KEY, FLUID_INSTADAPP_STAKING_FUSE_ADDRESS, \
+from constants import ANVIL_WALLET_PRIVATE_KEY, FLUID_INSTADAPP_STAKING_FUSE_ADDRESS, \
   FLUID_INSTADAPP_USDC_POOL_ADDRESS, FLUID_INSTADAPP_POOL_FUSE_ADDRESS, FLUID_INSTADAPP_STAKING_ADDRESS, \
   FLUID_INSTADAPP_CLAIM_FUSE_ADDRESS, GEARBOX_USDC_POOL_ADDRESS, GEARBOX_POOL_FUSE_ADDRESS, \
   GEARBOX_FARM_USDC_POOL_ADDRESS, GEARBOX_FARM_FUSE_ADDRESS, GEARBOX_CLAIM_FUSE_ADDRESS, PLASMA_VAULT, GAS_PRICE_MARGIN, \
   DEFAULT_TRANSACTION_MAX_PRIORITY_FEE, IPOR_FUSION_ACCESS_MANAGER_USDC_ADDRESS, ANVIL_WALLET
-from tests.testcontainers.AnvilTestContainerStarter import AnvilTestContainerStarter
+from testcontainers.anvil_container import AnvilTestContainerStarter
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
