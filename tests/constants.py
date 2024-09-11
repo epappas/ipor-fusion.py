@@ -2,11 +2,7 @@ from web3 import Web3
 
 DEFAULT_TRANSACTION_MAX_PRIORITY_FEE = 2_000_000_000
 ONE_HUNDRED = 100
-USDC = "0xaf88d065e77c8cc2239327c5edb3a432268e5831"
-
-PLASMA_VAULT = Web3.to_checksum_address("0x862644e627eb0cdeff10f234bea51b8dfd6ea8e8")
-
-from web3 import Web3
+USDC = Web3.to_checksum_address("0xaf88d065e77c8cc2239327c5edb3a432268e5831")
 
 PLASMA_VAULT = Web3.to_checksum_address("0x862644e627eb0cdeff10f234bea51b8dfd6ea8e8")
 

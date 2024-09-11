@@ -4,18 +4,18 @@ import os
 import pytest
 from eth_account import Account
 
+from anvil_container import AnvilTestContainerStarter
 from constants import ANVIL_WALLET_PRIVATE_KEY, FLUID_INSTADAPP_STAKING_FUSE_ADDRESS, FLUID_INSTADAPP_USDC_POOL_ADDRESS, \
   FLUID_INSTADAPP_POOL_FUSE_ADDRESS, FLUID_INSTADAPP_STAKING_ADDRESS, FLUID_INSTADAPP_CLAIM_FUSE_ADDRESS, \
   GEARBOX_USDC_POOL_ADDRESS, GEARBOX_POOL_FUSE_ADDRESS, GEARBOX_FARM_USDC_POOL_ADDRESS, GEARBOX_FARM_FUSE_ADDRESS, \
   GEARBOX_CLAIM_FUSE_ADDRESS, PLASMA_VAULT, GAS_PRICE_MARGIN, DEFAULT_TRANSACTION_MAX_PRIORITY_FEE, \
-  IPOR_FUSION_ACCESS_MANAGER_USDC_ADDRESS, ANVIL_WALLET, FORK_BLOCK_NUMBER
+  IPOR_FUSION_ACCESS_MANAGER_USDC_ADDRESS, ANVIL_WALLET, FORK_BLOCK_NUMBER, USDC, FLUID_USDC_STAKING_POOL
 from ipor_fusion_sdk.MarketId import MarketId
 from ipor_fusion_sdk.VaultExecuteCallFactory import VaultExecuteCallFactory
 from ipor_fusion_sdk.fuse.FluidInstadappSupplyFuse import FluidInstadappSupplyFuse
 from ipor_fusion_sdk.fuse.GearboxSupplyFuse import GearboxSupplyFuse
 from ipor_fusion_sdk.operation.Supply import Supply
 from ipor_fusion_sdk.operation.Withdraw import Withdraw
-from testcontainers.anvil_container import AnvilTestContainerStarter
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
@@ -52,20 +52,8 @@ def account():
   return Account.from_key(ANVIL_WALLET_PRIVATE_KEY)
 
 
-def test_withdraw_from_fluid_and_supply_to_gearbox(web3, account, anvil):
-  # given
-  anvil.reset_fork(FORK_BLOCK_NUMBER)
-  anvil.execute_in_container(SET_ANVIL_WALLET_AS_PILOT_V3_ALPHA_COMMAND)
-
-  fluid_staking_balance_before = read_token_balance(web3, PLASMA_VAULT, FLUID_INSTADAPP_STAKING_ADDRESS)
-  gearbox_farm_balance_before = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
-
-  withdraw = Withdraw(MarketId(FluidInstadappSupplyFuse.PROTOCOL_ID, FLUID_INSTADAPP_USDC_POOL_ADDRESS),
-                      fluid_staking_balance_before)
-  supply = Supply(MarketId(GearboxSupplyFuse.PROTOCOL_ID, GEARBOX_USDC_POOL_ADDRESS), fluid_staking_balance_before)
-
-  operations = [withdraw, supply]
-
+@pytest.fixture(scope="module")
+def vault_execute_call_factory() -> VaultExecuteCallFactory:
   fluid_fuse = FluidInstadappSupplyFuse(FLUID_INSTADAPP_USDC_POOL_ADDRESS,
                                         FLUID_INSTADAPP_POOL_FUSE_ADDRESS,
                                         FLUID_INSTADAPP_STAKING_ADDRESS,
@@ -77,64 +65,183 @@ def test_withdraw_from_fluid_and_supply_to_gearbox(web3, account, anvil):
                                    GEARBOX_FARM_USDC_POOL_ADDRESS,
                                    GEARBOX_FARM_FUSE_ADDRESS,
                                    GEARBOX_CLAIM_FUSE_ADDRESS)
+  return VaultExecuteCallFactory({fluid_fuse, gearbox_fuse})
 
-  vault_execute_call_factory = VaultExecuteCallFactory({fluid_fuse, gearbox_fuse})
-  function = vault_execute_call_factory.create_execute_call(operations)
 
-  # when
-  execute_transaction(web3, PLASMA_VAULT, function, account)
-
-  # then
-  fluid_staking_balance_after = read_token_balance(web3, PLASMA_VAULT, FLUID_INSTADAPP_STAKING_ADDRESS)
-  gearbox_farm_balance_after = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
-
-  assert fluid_staking_balance_before > 11_000e6
-  assert gearbox_farm_balance_before == 0
-
-  assert fluid_staking_balance_after == 0
-  assert gearbox_farm_balance_after > 11_000e6
-
-def test_withdraw_from_fluid_and_supply_to_gearbox(web3, account, anvil):
-  # given
+@pytest.fixture
+def setup(web3, account, anvil, vault_execute_call_factory):
   anvil.reset_fork(FORK_BLOCK_NUMBER)
   anvil.execute_in_container(SET_ANVIL_WALLET_AS_PILOT_V3_ALPHA_COMMAND)
+  withdraw_from_fluid(web3, account, vault_execute_call_factory)
+  yield
 
+
+def withdraw_from_fluid(web3, account, vault_execute_call_factory):
   fluid_staking_balance_before = read_token_balance(web3, PLASMA_VAULT, FLUID_INSTADAPP_STAKING_ADDRESS)
-  gearbox_farm_balance_before = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
 
   withdraw = Withdraw(MarketId(FluidInstadappSupplyFuse.PROTOCOL_ID, FLUID_INSTADAPP_USDC_POOL_ADDRESS),
                       fluid_staking_balance_before)
-  supply = Supply(MarketId(GearboxSupplyFuse.PROTOCOL_ID, GEARBOX_USDC_POOL_ADDRESS), fluid_staking_balance_before)
 
-  operations = [withdraw, supply]
+  operations = [withdraw]
 
-  fluid_fuse = FluidInstadappSupplyFuse(FLUID_INSTADAPP_USDC_POOL_ADDRESS,
-                                        FLUID_INSTADAPP_POOL_FUSE_ADDRESS,
-                                        FLUID_INSTADAPP_STAKING_ADDRESS,
-                                        FLUID_INSTADAPP_STAKING_FUSE_ADDRESS,
-                                        FLUID_INSTADAPP_CLAIM_FUSE_ADDRESS)
+  function_call = vault_execute_call_factory.create_execute_call(operations)
 
-  gearbox_fuse = GearboxSupplyFuse(GEARBOX_USDC_POOL_ADDRESS,
-                                   GEARBOX_POOL_FUSE_ADDRESS,
-                                   GEARBOX_FARM_USDC_POOL_ADDRESS,
-                                   GEARBOX_FARM_FUSE_ADDRESS,
-                                   GEARBOX_CLAIM_FUSE_ADDRESS)
+  execute_transaction(web3, PLASMA_VAULT, function_call, account)
 
-  vault_execute_call_factory = VaultExecuteCallFactory({fluid_fuse, gearbox_fuse})
+
+def test_supply_and_withdraw_from_gearbox(setup, web3, account, vault_execute_call_factory):
+  # given for supply
+  vault_balance_before = read_token_balance(web3, PLASMA_VAULT, USDC)
+  gearbox_farm_balance_before = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
+
+  supply = Supply(MarketId(GearboxSupplyFuse.PROTOCOL_ID, GEARBOX_USDC_POOL_ADDRESS), vault_balance_before)
+
+  operations = [supply]
+
   function = vault_execute_call_factory.create_execute_call(operations)
 
-  # when
+  # when supply
   execute_transaction(web3, PLASMA_VAULT, function, account)
 
-  # then
-  fluid_staking_balance_after = read_token_balance(web3, PLASMA_VAULT, FLUID_INSTADAPP_STAKING_ADDRESS)
+  vault_balance_after = read_token_balance(web3, PLASMA_VAULT, USDC)
   gearbox_farm_balance_after = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
 
-  assert fluid_staking_balance_before > 11_000e6
-  assert gearbox_farm_balance_before == 0
+  assert vault_balance_before > 11_000e6, "vault_balance_before > 11_000e6"
+  assert vault_balance_after == 0, "vault_balance_after == 0"
+  assert gearbox_farm_balance_before == 0, "gearbox_farm_balance_before == 0"
+  assert gearbox_farm_balance_after > 11_000e6, "gearbox_farm_balance_after > 11_000e6"
 
-  assert fluid_staking_balance_after == 0
-  assert gearbox_farm_balance_after > 11_000e6
+  # given for withdraw
+  vault_balance_before = read_token_balance(web3, PLASMA_VAULT, USDC)
+  gearbox_farm_balance_before = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
+
+  withdraw = Withdraw(MarketId(GearboxSupplyFuse.PROTOCOL_ID, GEARBOX_USDC_POOL_ADDRESS), gearbox_farm_balance_after)
+
+  operations = [withdraw]
+
+  function = vault_execute_call_factory.create_execute_call(operations)
+
+  # when withdraw
+  execute_transaction(web3, PLASMA_VAULT, function, account)
+
+  # then after withdraw
+  vault_balance_after = read_token_balance(web3, PLASMA_VAULT, USDC)
+  gearbox_farm_balance_after = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
+
+  assert vault_balance_before == 0, "vault_balance_before == 0"
+  assert vault_balance_after > 11_000e6, "vault_balance_after > 11_000e6"
+  assert gearbox_farm_balance_before > 11_000e6, "gearbox_farm_balance_before > 11_000e6"
+  assert gearbox_farm_balance_after == 0, "gearbox_farm_balance_after == 0"
+
+
+def test_supply_and_withdraw_from_fluid(setup, web3, account, vault_execute_call_factory):
+  # given for supply
+  vault_balance_before = read_token_balance(web3, PLASMA_VAULT, USDC)
+  fluid_staking_balance_before = read_token_balance(web3, PLASMA_VAULT, FLUID_USDC_STAKING_POOL)
+
+  supply = Supply(MarketId(FluidInstadappSupplyFuse.PROTOCOL_ID, FLUID_INSTADAPP_USDC_POOL_ADDRESS),
+                  vault_balance_before)
+
+  operations = [supply]
+
+  function = vault_execute_call_factory.create_execute_call(operations)
+
+  # when supply
+  execute_transaction(web3, PLASMA_VAULT, function, account)
+
+  vault_balance_after = read_token_balance(web3, PLASMA_VAULT, USDC)
+  fluid_staking_balance_after = read_token_balance(web3, PLASMA_VAULT, FLUID_USDC_STAKING_POOL)
+
+  assert vault_balance_before > 11_000e6, "vault_balance_before > 11_000e6"
+  assert vault_balance_after == 0, "vault_balance_after == 0"
+  assert fluid_staking_balance_before == 0, "fluid_staking_balance_before == 0"
+  assert fluid_staking_balance_after > 11_000e6, "fluid_staking_balance_after > 11_000e6"
+
+  # given for withdraw
+  vault_balance_before = read_token_balance(web3, PLASMA_VAULT, USDC)
+  fluid_staking_balance_before = read_token_balance(web3, PLASMA_VAULT, FLUID_USDC_STAKING_POOL)
+
+  withdraw = Withdraw(MarketId(FluidInstadappSupplyFuse.PROTOCOL_ID, FLUID_INSTADAPP_USDC_POOL_ADDRESS),
+                      fluid_staking_balance_before)
+
+  operations = [withdraw]
+
+  function = vault_execute_call_factory.create_execute_call(operations)
+
+  # when withdraw
+  execute_transaction(web3, PLASMA_VAULT, function, account)
+
+  # then after withdraw
+  vault_balance_after = read_token_balance(web3, PLASMA_VAULT, USDC)
+  fluid_staking_balance_after = read_token_balance(web3, PLASMA_VAULT, FLUID_USDC_STAKING_POOL)
+
+  assert vault_balance_before == 0, "vault_balance_before == 0"
+  assert vault_balance_after > 11_000e6, "vault_balance_after > 11_000e6"
+  assert fluid_staking_balance_before > 11_000e6, "fluid_staking_balance_before > 11_000e6"
+  assert fluid_staking_balance_after == 0, "fluid_staking_balance_after == 0"
+
+
+# def test_supply_to_fluid(setup, web3, account, vault_execute_call_factory):
+#   # given
+#   vault_balance_before = read_token_balance(web3, PLASMA_VAULT, USDC)
+#   gearbox_farm_balance_before = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
+#
+#   supply = Supply(MarketId(FluidInstadappSupplyFuse.PROTOCOL_ID, FLUID_INSTADAPP_USDC_POOL_ADDRESS),
+#                   vault_balance_before)
+#
+#   operations = [supply]
+#
+#   function = vault_execute_call_factory.create_execute_call(operations)
+#
+#   # when
+#   execute_transaction(web3, PLASMA_VAULT, function, account)
+#
+#   # then
+#   vault_balance_after = read_token_balance(web3, PLASMA_VAULT, USDC)
+#   gearbox_farm_balance_after = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
+#
+#   assert vault_balance_before > 11_000e6, "vault_balance_before > 11_000e6"
+#   assert vault_balance_after == 0, "vault_balance_after == 0"
+#   assert gearbox_farm_balance_before == 0, "gearbox_farm_balance_before == 0"
+#   assert gearbox_farm_balance_after > 11_000e6, "gearbox_farm_balance_after > 11_000e6"
+
+
+# def test_withdraw_from_fluid_and_supply_to_gearbox_and_withdraw_from_gearbox(
+#     web3, account, anvil, vault_execute_call_factory):
+#   # given
+#   anvil.reset_fork(FORK_BLOCK_NUMBER)
+#   anvil.execute_in_container(SET_ANVIL_WALLET_AS_PILOT_V3_ALPHA_COMMAND)
+#
+#   withdraw_from_fluid(web3, account, anvil, vault_execute_call_factory)
+#
+#   fluid_staking_balance_before = read_token_balance(web3, PLASMA_VAULT, FLUID_INSTADAPP_STAKING_ADDRESS)
+#   gearbox_farm_balance_before = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
+#
+#   withdraw_fluid = Withdraw(MarketId(FluidInstadappSupplyFuse.PROTOCOL_ID, FLUID_INSTADAPP_USDC_POOL_ADDRESS),
+#                             fluid_staking_balance_before)
+#   supply_gearbox = Supply(MarketId(GearboxSupplyFuse.PROTOCOL_ID, GEARBOX_USDC_POOL_ADDRESS),
+#                           fluid_staking_balance_before)
+#
+#   withdraw_gearbox = Supply(MarketId(GearboxSupplyFuse.PROTOCOL_ID, GEARBOX_USDC_POOL_ADDRESS),
+#                             fluid_staking_balance_before - 1000)
+#
+#   operations = [withdraw_fluid, supply_gearbox, withdraw_gearbox]
+#
+#   function_call = vault_execute_call_factory.create_execute_call(operations)
+#
+#   # when
+#   execute_transaction(web3, PLASMA_VAULT, function_call, account)
+#
+#   # then
+#   fluid_staking_balance_after = read_token_balance(web3, PLASMA_VAULT, FLUID_INSTADAPP_STAKING_ADDRESS)
+#   gearbox_farm_balance_after = read_token_balance(web3, PLASMA_VAULT, GEARBOX_FARM_USDC_POOL_ADDRESS)
+#
+#   assert fluid_staking_balance_before > 11_000e6
+#   assert gearbox_farm_balance_before == 0
+#
+#   assert fluid_staking_balance_after == 0
+#   assert gearbox_farm_balance_after > 1
+
 
 def execute_transaction(web3, contract_address, function, account):
   nonce = web3.eth.get_transaction_count(account.address)
@@ -142,7 +249,7 @@ def execute_transaction(web3, contract_address, function, account):
   max_fee_per_gas = calculate_max_fee_per_gas(gas_price)
   max_priority_fee_per_gas = get_max_priority_fee(gas_price)
   data = f'0x{function.hex()}'
-  estimated_gas = web3.eth.estimate_gas({'to': contract_address, 'from': account.address, 'data': data})
+  estimated_gas = int(1.25 * web3.eth.estimate_gas({'to': contract_address, 'from': account.address, 'data': data}))
 
   transaction = {'chainId': web3.eth.chain_id, 'gas': estimated_gas, 'maxFeePerGas': max_fee_per_gas,
                  'maxPriorityFeePerGas': max_priority_fee_per_gas, 'to': contract_address, 'from': account.address,
@@ -151,6 +258,7 @@ def execute_transaction(web3, contract_address, function, account):
   signed_tx = web3.eth.account.sign_transaction(transaction, account.key)
   tx_hash = web3.eth.send_raw_transaction(signed_tx.raw_transaction)
   receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+  print(f"Transaction receipt: {receipt}")
   assert receipt["status"] == 1, "Transaction failed"
 
 
