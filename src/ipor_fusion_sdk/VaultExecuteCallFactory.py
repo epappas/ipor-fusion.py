@@ -36,11 +36,6 @@ class VaultExecuteCallFactory:
 
     bytes_data = []
 
-    # https://arbiscan.io/tx/0x6c3660676709c58237090861e8c7329b6a883d2a1a545f5ee6cd267ef9f553e2
-    # fluid -> gearbox
-
-    # Function: execute(tuple[] calls_)
-
     for action in actions:
       bytes_data.append([action.fuse, action.data])
 
@@ -49,7 +44,6 @@ class VaultExecuteCallFactory:
     execute_function_call = execute_function_call + encoded_arguments
 
     return execute_function_call
-    # ContractFunction.factory(self.EXECUTE_FUNCTION_NAME, [input_data], [])
 
   def create_claim_rewards_call(self, claims: List[Claim]) -> ContractFunction:
     if claims is None:
@@ -61,7 +55,7 @@ class VaultExecuteCallFactory:
     for claim in claims:
       actions.extend(self.create_claim_action_data(claim))
 
-    input_data = Web3.toHex(text=str(actions))  # Adjust this as per FuseActionDynamicStruct
+    input_data = Web3.toHex(text=str(actions))
     return ContractFunction(self.CLAIM_REWARDS_FUNCTION_NAME, [input_data], [])
 
   def create_action_data(self, operation: Operation) -> List[FuseActionDynamicStruct]:
