@@ -10,17 +10,14 @@ from constants import ANVIL_WALLET_PRIVATE_KEY, FLUID_INSTADAPP_STAKING_FUSE_ADD
   GEARBOX_USDC_POOL_ADDRESS, GEARBOX_POOL_FUSE_ADDRESS, GEARBOX_FARM_USDC_POOL_ADDRESS, GEARBOX_FARM_FUSE_ADDRESS, \
   GEARBOX_CLAIM_FUSE_ADDRESS, PLASMA_VAULT_V3, GAS_PRICE_MARGIN, DEFAULT_TRANSACTION_MAX_PRIORITY_FEE, \
   IPOR_FUSION_V3_ACCESS_MANAGER_USDC_ADDRESS, ANVIL_WALLET, USDC, FLUID_USDC_STAKING_POOL, AAVE_A_TOKEN_ARB_USDC_N, \
-  AAVEV_V3_FUSE_ADDRESS, COMPOUND_V3_C_TOKEN_ADDRESS, COMPOUND_V3_FUSE_ADDRESS, USDT, SWAP_FUSE_UNISWAP_V3_ADDRESS, \
-  PLASMA_VAULT_V4, IPOR_FUSION_V4_ACCESS_MANAGER_USDC_ADDRESS, FORK_BLOCK_NUMBER
+  AAVEV_V3_FUSE_ADDRESS, COMPOUND_V3_C_TOKEN_ADDRESS, COMPOUND_V3_FUSE_ADDRESS, FORK_BLOCK_NUMBER
 from ipor_fusion_sdk.MarketId import MarketId
 from ipor_fusion_sdk.VaultExecuteCallFactory import VaultExecuteCallFactory
 from ipor_fusion_sdk.fuse.AaveV3SupplyFuse import AaveV3SupplyFuse
 from ipor_fusion_sdk.fuse.CompoundV3SupplyFuse import CompoundV3SupplyFuse
 from ipor_fusion_sdk.fuse.FluidInstadappSupplyFuse import FluidInstadappSupplyFuse
 from ipor_fusion_sdk.fuse.GearboxSupplyFuse import GearboxSupplyFuse
-from ipor_fusion_sdk.fuse.SwapFuseUniswapV3 import SwapFuseUniswapV3
 from ipor_fusion_sdk.operation.Supply import Supply
-from ipor_fusion_sdk.operation.Swap import Swap
 from ipor_fusion_sdk.operation.Withdraw import Withdraw
 
 logging.basicConfig(level=logging.DEBUG)
@@ -34,11 +31,6 @@ if not FORK_URL:
 SET_ANVIL_WALLET_AS_PILOT_V3_ALPHA_COMMAND = ["cast", "send", "--unlocked", "--from",
                                               "0x4E3C666F0c898a9aE1F8aBB188c6A2CC151E17fC",
                                               IPOR_FUSION_V3_ACCESS_MANAGER_USDC_ADDRESS,
-                                              "grantRole(uint64,address,uint32)()", "200", ANVIL_WALLET, "0"]
-
-SET_ANVIL_WALLET_AS_PILOT_V4_ALPHA_COMMAND = ["cast", "send", "--unlocked", "--from",
-                                              "0x4E3C666F0c898a9aE1F8aBB188c6A2CC151E17fC",
-                                              IPOR_FUSION_V4_ACCESS_MANAGER_USDC_ADDRESS,
                                               "grantRole(uint64,address,uint32)()", "200", ANVIL_WALLET, "0"]
 
 
@@ -81,16 +73,13 @@ def vault_execute_call_factory() -> VaultExecuteCallFactory:
 
   compound_v3_fuse = CompoundV3SupplyFuse(COMPOUND_V3_FUSE_ADDRESS, USDC)
 
-  uniswap_v3_swap_fuse = SwapFuseUniswapV3(SWAP_FUSE_UNISWAP_V3_ADDRESS)
-
-  return VaultExecuteCallFactory({fluid_fuse, gearbox_fuse, aave_v3_fuse, compound_v3_fuse, uniswap_v3_swap_fuse})
+  return VaultExecuteCallFactory({fluid_fuse, gearbox_fuse, aave_v3_fuse, compound_v3_fuse})
 
 
 @pytest.fixture
-def setup_v3(web3, account, anvil, vault_execute_call_factory):
+def setup(web3, account, anvil, vault_execute_call_factory):
   anvil.reset_fork(FORK_BLOCK_NUMBER)
   anvil.execute_in_container(SET_ANVIL_WALLET_AS_PILOT_V3_ALPHA_COMMAND)
-  anvil.execute_in_container(SET_ANVIL_WALLET_AS_PILOT_V4_ALPHA_COMMAND)
   withdraw_from_fluid(web3, account, vault_execute_call_factory)
   yield
 
@@ -108,7 +97,7 @@ def withdraw_from_fluid(web3, account, vault_execute_call_factory):
   execute_transaction(web3, PLASMA_VAULT_V3, function_call, account)
 
 
-def test_supply_and_withdraw_from_gearbox(setup_v3, web3, account, vault_execute_call_factory):
+def test_supply_and_withdraw_from_gearbox(setup, web3, account, vault_execute_call_factory):
   # given for supply
   vault_balance_before = read_token_balance(web3, PLASMA_VAULT_V3, USDC)
   gearbox_farm_balance_before = read_token_balance(web3, PLASMA_VAULT_V3, GEARBOX_FARM_USDC_POOL_ADDRESS)
@@ -153,7 +142,7 @@ def test_supply_and_withdraw_from_gearbox(setup_v3, web3, account, vault_execute
   assert gearbox_farm_balance_after == 0, "gearbox_farm_balance_after == 0"
 
 
-def test_supply_and_withdraw_from_fluid(setup_v3, web3, account, vault_execute_call_factory):
+def test_supply_and_withdraw_from_fluid(setup, web3, account, vault_execute_call_factory):
   # given for supply
   vault_balance_before = read_token_balance(web3, PLASMA_VAULT_V3, USDC)
   fluid_staking_balance_before = read_token_balance(web3, PLASMA_VAULT_V3, FLUID_USDC_STAKING_POOL)
@@ -200,7 +189,7 @@ def test_supply_and_withdraw_from_fluid(setup_v3, web3, account, vault_execute_c
   assert fluid_staking_balance_after == 0, "fluid_staking_balance_after == 0"
 
 
-def test_supply_and_withdraw_from_aave_v3(setup_v3, web3, account, vault_execute_call_factory):
+def test_supply_and_withdraw_from_aave_v3(setup, web3, account, vault_execute_call_factory):
   # given for supply
   vault_balance_before = read_token_balance(web3, PLASMA_VAULT_V3, USDC)
   protocol_balance_before = read_token_balance(web3, PLASMA_VAULT_V3, AAVE_A_TOKEN_ARB_USDC_N)
@@ -245,7 +234,7 @@ def test_supply_and_withdraw_from_aave_v3(setup_v3, web3, account, vault_execute
   assert protocol_balance_after < 1e6, "protocol_balance_after < 1e6"
 
 
-def test_supply_and_withdraw_from_compound_v3(setup_v3, web3, account, vault_execute_call_factory):
+def test_supply_and_withdraw_from_compound_v3(setup, web3, account, vault_execute_call_factory):
   # given for supply
   vault_balance_before = read_token_balance(web3, PLASMA_VAULT_V3, USDC)
   protocol_balance_before = read_token_balance(web3, PLASMA_VAULT_V3, COMPOUND_V3_C_TOKEN_ADDRESS)
@@ -288,46 +277,6 @@ def test_supply_and_withdraw_from_compound_v3(setup_v3, web3, account, vault_exe
   assert vault_balance_after > 11_000e6, "vault_balance_after > 11_000e6"
   assert protocol_balance_before > 11_000e6, "protocol_balance_before > 11_000e6"
   assert protocol_balance_after < 1e6, "protocol_balance_after < 1e6"
-
-
-def test_anvil_reset(setup_v3, web3, anvil, account, vault_execute_call_factory):
-  # given
-  block_number = 254080000
-
-  # when
-  anvil.reset_fork(block_number)
-
-  # then
-  assert web3.eth.get_block('latest').number == block_number
-
-
-def test_should_swap_when_one_hop_uniswap_v3(web3, anvil, account, vault_execute_call_factory):
-  # given
-  anvil.reset_fork(254084008)
-  anvil.execute_in_container(SET_ANVIL_WALLET_AS_PILOT_V4_ALPHA_COMMAND)
-
-  token_in_amount = int(100e6)
-  min_out_amount = 0
-  fee = 100
-
-  swap = Swap(MarketId(SwapFuseUniswapV3.PROTOCOL_ID, "swap"), USDC, USDT, fee, token_in_amount, min_out_amount)
-
-  operations = [swap]
-
-  function = vault_execute_call_factory.create_execute_call(operations)
-
-  vault_usdc_balance_before = read_token_balance(web3, PLASMA_VAULT_V4, USDC)
-  vault_usdt_balance_before = read_token_balance(web3, PLASMA_VAULT_V4, USDT)
-
-  # when
-  execute_transaction(web3, PLASMA_VAULT_V4, function, account)
-
-  # then
-  vault_usdc_balance_after = read_token_balance(web3, PLASMA_VAULT_V4, USDC)
-  vault_usdt_balance_after = read_token_balance(web3, PLASMA_VAULT_V4, USDT)
-
-  assert vault_usdc_balance_after - vault_usdc_balance_before == -token_in_amount, "vault_usdc_balance_before - vault_usdc_balance_after == token_in_amount"
-  assert vault_usdt_balance_after - vault_usdt_balance_before  > int(90e6), "vault_usdt_balance_after - vault_usdt_balance_before  > 90e6"
 
 def execute_transaction(web3, contract_address, function, account):
   nonce = web3.eth.get_transaction_count(account.address)
