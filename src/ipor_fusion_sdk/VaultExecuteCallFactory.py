@@ -8,6 +8,7 @@ from web3.contract.contract import ContractFunction
 from ipor_fusion_sdk.fuse import Fuse
 from ipor_fusion_sdk.fuse.FuseActionDynamicStruct import FuseActionDynamicStruct
 from ipor_fusion_sdk.operation.Claim import Claim
+from ipor_fusion_sdk.operation.NewPosition import NewPosition
 from ipor_fusion_sdk.operation.Operation import Operation
 from ipor_fusion_sdk.operation.Supply import Supply
 from ipor_fusion_sdk.operation.Swap import Swap
@@ -80,6 +81,17 @@ class VaultExecuteCallFactory:
                                           operation.fee(),
                                           operation.token_in_amount(),
                                           operation.min_out_amount())
+    elif isinstance(operation, NewPosition):
+      return fuse.create_fuse_new_position_action(operation.token0(),
+        operation.token1(),
+        operation.fee(),
+        operation.tick_lower(),
+        operation.tick_upper(),
+        operation.amount0_desired(),
+        operation.amount1_desired(),
+        operation.amount0_min(),
+        operation.amount1_min(),
+        operation.deadline())
     else:
       raise NotImplementedError(f"Unsupported operation: {type(operation).__name__}")
 

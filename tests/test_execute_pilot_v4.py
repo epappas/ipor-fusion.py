@@ -5,20 +5,14 @@ import pytest
 from eth_account import Account
 
 from anvil_container import AnvilTestContainerStarter
-from constants import ANVIL_WALLET_PRIVATE_KEY, FLUID_INSTADAPP_STAKING_FUSE_ADDRESS, FLUID_INSTADAPP_USDC_POOL_ADDRESS, \
-  FLUID_INSTADAPP_POOL_FUSE_ADDRESS, FLUID_INSTADAPP_STAKING_ADDRESS, FLUID_INSTADAPP_CLAIM_FUSE_ADDRESS, \
-  GEARBOX_USDC_POOL_ADDRESS, GEARBOX_POOL_FUSE_ADDRESS, GEARBOX_FARM_USDC_POOL_ADDRESS, GEARBOX_FARM_FUSE_ADDRESS, \
-  GEARBOX_CLAIM_FUSE_ADDRESS, GAS_PRICE_MARGIN, DEFAULT_TRANSACTION_MAX_PRIORITY_FEE, \
-  IPOR_FUSION_V3_ACCESS_MANAGER_USDC_ADDRESS, ANVIL_WALLET, USDC, AAVEV_V3_FUSE_ADDRESS, COMPOUND_V3_FUSE_ADDRESS, USDT, \
-  SWAP_FUSE_UNISWAP_V3_ADDRESS, \
-  PLASMA_VAULT_V4, IPOR_FUSION_V4_ACCESS_MANAGER_USDC_ADDRESS, FORK_BLOCK_NUMBER
+from constants import ANVIL_WALLET_PRIVATE_KEY, GAS_PRICE_MARGIN, DEFAULT_TRANSACTION_MAX_PRIORITY_FEE, \
+  IPOR_FUSION_V3_ACCESS_MANAGER_USDC_ADDRESS, ANVIL_WALLET, USDC, USDT, SWAP_FUSE_UNISWAP_V3_ADDRESS, PLASMA_VAULT_V4, \
+  IPOR_FUSION_V4_ACCESS_MANAGER_USDC_ADDRESS, NEW_POSITION_SWAP_FUSE_UNISWAP_V3_ADDRESS
 from ipor_fusion_sdk.MarketId import MarketId
 from ipor_fusion_sdk.VaultExecuteCallFactory import VaultExecuteCallFactory
-from ipor_fusion_sdk.fuse.AaveV3SupplyFuse import AaveV3SupplyFuse
-from ipor_fusion_sdk.fuse.CompoundV3SupplyFuse import CompoundV3SupplyFuse
-from ipor_fusion_sdk.fuse.FluidInstadappSupplyFuse import FluidInstadappSupplyFuse
-from ipor_fusion_sdk.fuse.GearboxSupplyFuse import GearboxSupplyFuse
 from ipor_fusion_sdk.fuse.SwapFuseUniswapV3 import SwapFuseUniswapV3
+from ipor_fusion_sdk.fuse.UniswapV3NewPositionFuse import UniswapV3NewPositionFuse
+from ipor_fusion_sdk.operation.NewPosition import NewPosition
 from ipor_fusion_sdk.operation.Swap import Swap
 
 logging.basicConfig(level=logging.DEBUG)
@@ -63,25 +57,9 @@ def account():
 
 @pytest.fixture(scope="module")
 def vault_execute_call_factory() -> VaultExecuteCallFactory:
-  fluid_fuse = FluidInstadappSupplyFuse(FLUID_INSTADAPP_USDC_POOL_ADDRESS,
-                                        FLUID_INSTADAPP_POOL_FUSE_ADDRESS,
-                                        FLUID_INSTADAPP_STAKING_ADDRESS,
-                                        FLUID_INSTADAPP_STAKING_FUSE_ADDRESS,
-                                        FLUID_INSTADAPP_CLAIM_FUSE_ADDRESS)
-
-  gearbox_fuse = GearboxSupplyFuse(GEARBOX_USDC_POOL_ADDRESS,
-                                   GEARBOX_POOL_FUSE_ADDRESS,
-                                   GEARBOX_FARM_USDC_POOL_ADDRESS,
-                                   GEARBOX_FARM_FUSE_ADDRESS,
-                                   GEARBOX_CLAIM_FUSE_ADDRESS)
-
-  aave_v3_fuse = AaveV3SupplyFuse(AAVEV_V3_FUSE_ADDRESS, USDC)
-
-  compound_v3_fuse = CompoundV3SupplyFuse(COMPOUND_V3_FUSE_ADDRESS, USDC)
-
   uniswap_v3_swap_fuse = SwapFuseUniswapV3(SWAP_FUSE_UNISWAP_V3_ADDRESS)
-
-  return VaultExecuteCallFactory({fluid_fuse, gearbox_fuse, aave_v3_fuse, compound_v3_fuse, uniswap_v3_swap_fuse})
+  uniswap_v_3_new_position_fuse = UniswapV3NewPositionFuse(NEW_POSITION_SWAP_FUSE_UNISWAP_V3_ADDRESS)
+  return VaultExecuteCallFactory({uniswap_v3_swap_fuse, uniswap_v_3_new_position_fuse})
 
 
 @pytest.fixture
@@ -115,6 +93,55 @@ def test_should_swap_when_one_hop_uniswap_v3(setup, web3, anvil, account, vault_
 
   assert vault_usdc_balance_after - vault_usdc_balance_before == -token_in_amount, "vault_usdc_balance_before - vault_usdc_balance_after == token_in_amount"
   assert vault_usdt_balance_after - vault_usdt_balance_before > int(90e6), "vault_usdt_balance_after - vault_usdt_balance_before  > 90e6"
+
+
+def test_should_open_two_new_position_uniswap_v3(setup, web3, anvil, account, vault_execute_call_factory):
+  # given
+  timestamp = web3.eth.get_block('latest')['timestamp']
+
+  token_in_amount = int(500e6)
+  min_out_amount = 0
+  fee = 100
+
+  swap = Swap(MarketId(SwapFuseUniswapV3.PROTOCOL_ID, "swap"), USDC, USDT, fee, token_in_amount, min_out_amount)
+
+  operations = [swap]
+
+  function_swap = vault_execute_call_factory.create_execute_call(operations)
+
+  vault_usdc_balance_before_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDC)
+  vault_usdt_balance_before_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDT)
+
+  execute_transaction(web3, PLASMA_VAULT_V4, function_swap, account)
+
+  new_position = NewPosition(market_id=MarketId(SwapFuseUniswapV3.PROTOCOL_ID, "new-position"),
+                             token0=USDC,
+                             token1=USDT,
+                             fee=100,
+                             tick_lower=-100,
+                             tick_upper=101,
+                             amount0_desired=int(499e6),
+                             amount1_desired=int(499e6),
+                             amount0_min=0,
+                             amount1_min=0,
+                             deadline=timestamp + 100)
+
+  operations = [new_position]
+
+  function = vault_execute_call_factory.create_execute_call(operations)
+
+  vault_usdc_balance_after_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDC)
+  vault_usdt_balance_after_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDT)
+
+  # when
+  execute_transaction(web3, PLASMA_VAULT_V4, function, account)
+
+  # then
+  vault_usdc_balance_after_new_position = read_token_balance(web3, PLASMA_VAULT_V4, USDC)
+  vault_usdt_balance_after_new_position = read_token_balance(web3, PLASMA_VAULT_V4, USDT)
+
+  assert vault_usdc_balance_after_new_position - vault_usdc_balance_after_swap == -int(499e6), "vault_usdc_balance_after_new_position - vault_usdc_balance_after_swap == -499e6"
+  assert vault_usdt_balance_after_new_position - vault_usdt_balance_after_swap == -489_152502, "vault_usdt_balance_after_new_position - vault_usdt_balance_after_swap == -499e6"
 
 
 def execute_transaction(web3, contract_address, function, account):
