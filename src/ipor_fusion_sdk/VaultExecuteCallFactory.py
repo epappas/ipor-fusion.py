@@ -10,6 +10,7 @@ from ipor_fusion_sdk.fuse.FuseActionDynamicStruct import FuseActionDynamicStruct
 from ipor_fusion_sdk.operation.Claim import Claim
 from ipor_fusion_sdk.operation.Operation import Operation
 from ipor_fusion_sdk.operation.Supply import Supply
+from ipor_fusion_sdk.operation.Swap import Swap
 from ipor_fusion_sdk.operation.Withdraw import Withdraw
 
 
@@ -32,8 +33,6 @@ class VaultExecuteCallFactory:
     for operation in operations:
       actions.extend(self.create_action_data(operation))
 
-    execute_function_call = function_signature_to_4byte_selector("execute((address,bytes)[])")
-
     bytes_data = []
 
     for action in actions:
@@ -41,9 +40,14 @@ class VaultExecuteCallFactory:
 
     encoded_arguments = encode(['(address,bytes)[]'], [bytes_data])
 
-    execute_function_call = execute_function_call + encoded_arguments
+    return self.create_raw_function_call(encoded_arguments)
 
-    return execute_function_call
+  def create_raw_function_call(self, encoded_arguments):
+    return self.execute_function_call_encoded_sig() + encoded_arguments
+
+  @staticmethod
+  def execute_function_call_encoded_sig():
+    return function_signature_to_4byte_selector("execute((address,bytes)[])")
 
   def create_claim_rewards_call(self, claims: List[Claim]) -> ContractFunction:
     if claims is None:
@@ -70,6 +74,12 @@ class VaultExecuteCallFactory:
       return fuse.create_fuse_enter_action(operation.market_id(), operation.amount())
     elif isinstance(operation, Withdraw):
       return fuse.create_fuse_exit_action(operation.market_id(), operation.amount())
+    elif isinstance(operation, Swap):
+      return fuse.create_fuse_swap_action(operation.token_in_address(),
+                                          operation.token_out_address(),
+                                          operation.fee(),
+                                          operation.token_in_amount(),
+                                          operation.min_out_amount())
     else:
       raise NotImplementedError(f"Unsupported operation: {type(operation).__name__}")
 
