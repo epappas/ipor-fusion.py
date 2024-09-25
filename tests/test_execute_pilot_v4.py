@@ -3,10 +3,8 @@ import os
 
 import pytest
 
+from commons import execute_transaction, read_token_balance
 from constants import (
-    GAS_PRICE_MARGIN,
-    DEFAULT_TRANSACTION_MAX_PRIORITY_FEE,
-    IPOR_FUSION_V3_ACCESS_MANAGER_USDC_ADDRESS,
     ANVIL_WALLET,
     USDC,
     USDT,
@@ -29,19 +27,6 @@ ARBITRUM_PROVIDER_URL = "ARBITRUM_PROVIDER_URL"
 FORK_URL = os.getenv(ARBITRUM_PROVIDER_URL)
 if not FORK_URL:
     raise ValueError("Environment variable ARBITRUM_PROVIDER_URL must be set")
-
-SET_ANVIL_WALLET_AS_PILOT_V3_ALPHA_COMMAND = [
-    "cast",
-    "send",
-    "--unlocked",
-    "--from",
-    "0x4E3C666F0c898a9aE1F8aBB188c6A2CC151E17fC",
-    IPOR_FUSION_V3_ACCESS_MANAGER_USDC_ADDRESS,
-    "grantRole(uint64,address,uint32)()",
-    "200",
-    ANVIL_WALLET,
-    "0",
-]
 
 SET_ANVIL_WALLET_AS_PILOT_V4_ALPHA_COMMAND = [
     "cast",
@@ -182,61 +167,3 @@ def test_should_open_two_new_position_uniswap_v3(
         vault_usdt_balance_after_new_position - vault_usdt_balance_after_swap
         == -489_152502
     ), "vault_usdt_balance_after_new_position - vault_usdt_balance_after_swap == -499e6"
-
-
-def execute_transaction(web3, contract_address, function, account):
-    nonce = web3.eth.get_transaction_count(account.address)
-    gas_price = web3.eth.gas_price
-    max_fee_per_gas = calculate_max_fee_per_gas(gas_price)
-    max_priority_fee_per_gas = get_max_priority_fee(gas_price)
-    data = f"0x{function.hex()}"
-    estimated_gas = int(
-        1.25
-        * web3.eth.estimate_gas(
-            {"to": contract_address, "from": account.address, "data": data}
-        )
-    )
-
-    transaction = {
-        "chainId": web3.eth.chain_id,
-        "gas": estimated_gas,
-        "maxFeePerGas": max_fee_per_gas,
-        "maxPriorityFeePerGas": max_priority_fee_per_gas,
-        "to": contract_address,
-        "from": account.address,
-        "nonce": nonce,
-        "data": data,
-    }
-
-    signed_tx = web3.eth.account.sign_transaction(transaction, account.key)
-    tx_hash = web3.eth.send_raw_transaction(signed_tx.raw_transaction)
-    receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
-    assert receipt["status"] == 1, "Transaction failed"
-
-
-def read_token_balance(web3, holder, token):
-    contract = web3.eth.contract(
-        address=token,
-        abi=[
-            {
-                "constant": True,
-                "inputs": [{"name": "_owner", "type": "address"}],
-                "name": "balanceOf",
-                "outputs": [{"name": "balance", "type": "uint256"}],
-                "type": "function",
-            }
-        ],
-    )
-    return contract.functions.balanceOf(holder).call()
-
-
-def calculate_max_fee_per_gas(gas_price):
-    return gas_price + percent_of(gas_price, GAS_PRICE_MARGIN)
-
-
-def get_max_priority_fee(gas_price):
-    return min(DEFAULT_TRANSACTION_MAX_PRIORITY_FEE, gas_price // 10)
-
-
-def percent_of(value, percentage):
-    return value * percentage // 100
