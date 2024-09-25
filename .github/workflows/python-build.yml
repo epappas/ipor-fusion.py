@@ -101,7 +101,7 @@ jobs:
 
       - name: Static code analysis
         if: inputs.static-code-analysis-enabled
-        run: poetry run pylint **/*.py
+        run: poetry run pylint --rcfile=pylintrc.toml --verbose **/*.py
         id: static-code-analyze
 
       - name: Build
