@@ -1,3 +1,4 @@
+from eth_account import Account
 from web3 import Web3
 
 DEFAULT_TRANSACTION_MAX_PRIORITY_FEE = 2_000_000_000
@@ -73,7 +74,8 @@ COMPOUND_V3_C_TOKEN_ADDRESS = Web3.to_checksum_address(
 
 ANVIL_WALLET = Web3.to_checksum_address("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
 
-ANVIL_WALLET_PRIVATE_KEY = (
+# pylint: disable=no-value-for-parameter
+ANVIL_WALLET_PRIVATE_KEY = Account.from_key(
     "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 )
 

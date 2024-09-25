@@ -2,11 +2,8 @@ import logging
 import os
 
 import pytest
-from eth_account import Account
 
-from anvil_container import AnvilTestContainerStarter
 from constants import (
-    ANVIL_WALLET_PRIVATE_KEY,
     GAS_PRICE_MARGIN,
     DEFAULT_TRANSACTION_MAX_PRIORITY_FEE,
     IPOR_FUSION_V3_ACCESS_MANAGER_USDC_ADDRESS,
@@ -60,29 +57,8 @@ SET_ANVIL_WALLET_AS_PILOT_V4_ALPHA_COMMAND = [
 ]
 
 
-@pytest.fixture(scope="module")
-def anvil():
-    logging.basicConfig(level=logging.DEBUG)
-    container = AnvilTestContainerStarter()
-    container.start()
-    return container
-
-
-@pytest.fixture(scope="module")
-def web3(anvil):
-    client = anvil.get_client()
-    print(f"Connected to Ethereum network with chain ID: {anvil.get_chain_id()}")
-    print(f"Anvil HTTP URL: {anvil.get_anvil_http_url()}")
-    return client
-
-
-@pytest.fixture(scope="module")
-def account():
-    return Account.from_key(ANVIL_WALLET_PRIVATE_KEY)
-
-
-@pytest.fixture(scope="module")
-def vault_execute_call_factory() -> VaultExecuteCallFactory:
+@pytest.fixture(scope="module", name="vault_execute_call_factory")
+def vault_execute_call_factory_fixture() -> VaultExecuteCallFactory:
     uniswap_v3_swap_fuse = SwapFuseUniswapV3(SWAP_FUSE_UNISWAP_V3_ADDRESS)
     uniswap_v_3_new_position_fuse = UniswapV3NewPositionFuse(
         NEW_POSITION_SWAP_FUSE_UNISWAP_V3_ADDRESS
@@ -92,16 +68,14 @@ def vault_execute_call_factory() -> VaultExecuteCallFactory:
     )
 
 
-@pytest.fixture
-def setup(web3, account, anvil, vault_execute_call_factory):
+@pytest.fixture(name="setup", autouse=True)
+def setup_fixture(anvil):
     anvil.reset_fork(254084008)
     anvil.execute_in_container(SET_ANVIL_WALLET_AS_PILOT_V4_ALPHA_COMMAND)
     yield
 
 
-def test_should_swap_when_one_hop_uniswap_v3(
-    setup, web3, anvil, account, vault_execute_call_factory
-):
+def test_should_swap_when_one_hop_uniswap_v3(web3, account, vault_execute_call_factory):
     # given
     token_in_amount = int(100e6)
     min_out_amount = 0
@@ -139,7 +113,7 @@ def test_should_swap_when_one_hop_uniswap_v3(
 
 
 def test_should_open_two_new_position_uniswap_v3(
-    setup, web3, anvil, account, vault_execute_call_factory
+    web3, account, vault_execute_call_factory
 ):
     # given
     timestamp = web3.eth.get_block("latest")["timestamp"]
@@ -163,6 +137,9 @@ def test_should_open_two_new_position_uniswap_v3(
 
     vault_usdc_balance_before_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDC)
     vault_usdt_balance_before_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDT)
+
+    log.info("vault_usdc_balance_before_swap: %s", vault_usdc_balance_before_swap)
+    log.info("vault_usdt_balance_before_swap: %s", vault_usdt_balance_before_swap)
 
     execute_transaction(web3, PLASMA_VAULT_V4, function_swap, account)
 

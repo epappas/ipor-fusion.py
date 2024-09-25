@@ -43,7 +43,8 @@ class GearboxSupplyFuse(Fuse):
             claim_fuse_address, "claimFuseAddress is required"
         )
 
-    def _require_non_null(self, value, message):
+    @staticmethod
+    def _require_non_null(value, message):
         if value is None:
             raise ValueError(message)
         return value

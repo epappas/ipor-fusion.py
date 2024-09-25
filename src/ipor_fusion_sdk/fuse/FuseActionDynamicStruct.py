@@ -1,7 +1,6 @@
 from typing import List
 
 from eth_abi import encode
-from eth_typing import Address
 
 
 class FuseActionDynamicStruct:

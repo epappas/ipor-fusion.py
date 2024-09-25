@@ -17,28 +17,23 @@ class NewPosition(Operation):
         amount1_min: int,
         deadline: int,
     ):
-        if market_id is None:
-            raise ValueError("market_id is required")
-        if token0 is None:
-            raise ValueError("token0 is required")
-        if token1 is None:
-            raise ValueError("token1 is required")
-        if fee is None:
-            raise ValueError("fee is required")
-        if tick_lower is None:
-            raise ValueError("tick_lower is required")
-        if tick_upper is None:
-            raise ValueError("tick_upper is required")
-        if amount0_desired is None:
-            raise ValueError("amount0_desired is required")
-        if amount1_desired is None:
-            raise ValueError("amount1_desired is required")
-        if amount0_min is None:
-            raise ValueError("amount0_min is required")
-        if amount1_min is None:
-            raise ValueError("amount1_min is required")
-        if deadline is None:
-            raise ValueError("deadline is required")
+        required_fields = {
+            "market_id": market_id,
+            "token0": token0,
+            "token1": token1,
+            "fee": fee,
+            "tick_lower": tick_lower,
+            "tick_upper": tick_upper,
+            "amount0_desired": amount0_desired,
+            "amount1_desired": amount1_desired,
+            "amount0_min": amount0_min,
+            "amount1_min": amount1_min,
+            "deadline": deadline,
+        }
+
+        for field_name, field_value in required_fields.items():
+            if field_value is None:
+                raise ValueError(f"{field_name} is required")
 
         self._market_id = market_id
         self._token0 = token0
