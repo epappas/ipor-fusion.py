@@ -58,5 +58,15 @@ export ARBITRUM_PROVIDER_URL="https://..."
 
 #### Run tests
 ```bash
-poetry run pytest
+poetry run pytest -v -s
+```
+
+#### Run pylint
+```bash 
+poetry run pylint --rcfile=pylintrc.toml --verbose --recursive=y 
+```
+
+#### Run black
+```bash 
+poetry run black ./
 ```
