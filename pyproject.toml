@@ -16,6 +16,12 @@ python-dotenv = "1.0.1"
 pytest = "8.3.3"
 testcontainers = "4.8.1"
 
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+unstable = false
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
