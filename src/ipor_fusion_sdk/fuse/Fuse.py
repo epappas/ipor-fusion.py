@@ -14,7 +14,6 @@ class Fuse(ABC):
         :param market_id: The market id
         :return: True if the fuse supports the market, False otherwise
         """
-        pass
 
     @abstractmethod
     def create_fuse_enter_action(
@@ -27,7 +26,6 @@ class Fuse(ABC):
         :param amount: The amount to enter
         :return: A list of FuseActionDynamicStruct representing the enter action
         """
-        pass
 
     @abstractmethod
     def create_fuse_exit_action(
@@ -40,7 +38,6 @@ class Fuse(ABC):
         :param amount: The amount to exit
         :return: A list of FuseActionDynamicStruct representing the exit action
         """
-        pass
 
     @abstractmethod
     def create_fuse_claim_action(
@@ -52,4 +49,3 @@ class Fuse(ABC):
         :param market_id: The market id
         :return: A list of FuseActionDynamicStruct representing the claim action
         """
-        pass

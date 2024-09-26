@@ -62,7 +62,7 @@ class VaultExecuteCallFactory:
         for claim in claims:
             actions.extend(self.create_claim_action_data(claim))
 
-        input_data = Web3.toHex(text=str(actions))
+        input_data = Web3.to_hex(text=str(actions))
         return ContractFunction(self.CLAIM_REWARDS_FUNCTION_NAME, [input_data], [])
 
     def create_action_data(self, operation: Operation) -> List[FuseActionDynamicStruct]:
@@ -77,11 +77,11 @@ class VaultExecuteCallFactory:
             return fuse.create_fuse_enter_action(
                 operation.market_id(), operation.amount()
             )
-        elif isinstance(operation, Withdraw):
+        if isinstance(operation, Withdraw):
             return fuse.create_fuse_exit_action(
                 operation.market_id(), operation.amount()
             )
-        elif isinstance(operation, Swap):
+        if isinstance(operation, Swap):
             return fuse.create_fuse_swap_action(
                 operation.token_in_address(),
                 operation.token_out_address(),
@@ -89,7 +89,7 @@ class VaultExecuteCallFactory:
                 operation.token_in_amount(),
                 operation.min_out_amount(),
             )
-        elif isinstance(operation, NewPosition):
+        if isinstance(operation, NewPosition):
             return fuse.create_fuse_enter_action(
                 operation.token0(),
                 operation.token1(),
@@ -102,7 +102,7 @@ class VaultExecuteCallFactory:
                 operation.amount1_min(),
                 operation.deadline(),
             )
-        elif isinstance(operation, DecreasePosition):
+        if isinstance(operation, DecreasePosition):
             return fuse.create_fuse_exit_action(
                 token_id=operation.token_id(),
                 liquidity=operation.liquidity(),
@@ -110,12 +110,10 @@ class VaultExecuteCallFactory:
                 amount1_min=operation.amount1_min(),
                 deadline=operation.deadline(),
             )
-        elif isinstance(operation, Collect):
+        if isinstance(operation, Collect):
             return fuse.create_fuse_enter_action(token_ids=operation.token_ids())
-        else:
-            raise NotImplementedError(
-                f"Unsupported operation: {type(operation).__name__}"
-            )
+
+        raise NotImplementedError(f"Unsupported operation: {type(operation).__name__}")
 
     def create_claim_action_data(self, claim: Claim) -> List:
         fuse = next((f for f in self.fuses if f.supports(claim.market_id())), None)

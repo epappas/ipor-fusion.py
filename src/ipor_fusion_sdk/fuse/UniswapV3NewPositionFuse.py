@@ -64,11 +64,11 @@ class UniswapV3NewPositionFuseEnterData:
 
 
 class UniswapV3NewPositionFuseExitData:
-    def __init__(self, tokenIds: List[int]):
-        self.tokenIds = tokenIds
+    def __init__(self, token_ids: List[int]):
+        self.token_ids = token_ids
 
     def encode(self) -> bytes:
-        return encode(["(uint256[])"], [[self.tokenIds]])
+        return encode(["(uint256[])"], [[self.token_ids]])
 
     @staticmethod
     def function_selector() -> bytes:
@@ -119,9 +119,9 @@ class UniswapV3NewPositionFuse:
         ]
 
     def create_fuse_exit_action(
-        self, tokenIds: List[int]
+        self, token_ids: List[int]
     ) -> List[FuseActionDynamicStruct]:
-        data = UniswapV3NewPositionFuseExitData(tokenIds)
+        data = UniswapV3NewPositionFuseExitData(token_ids)
         return [
             FuseActionDynamicStruct(
                 self.uniswap_v_3_new_position_fuse_address, data.function_call()

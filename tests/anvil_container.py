@@ -2,10 +2,13 @@ import logging
 import os
 import time
 from typing import Union
+
+from docker.models.containers import ExecResult
 from dotenv import load_dotenv
 
 from testcontainers.core.container import DockerContainer
 from web3 import Web3, HTTPProvider
+from web3.types import RPCEndpoint
 
 load_dotenv(verbose=True)
 
@@ -44,9 +47,10 @@ class AnvilTestContainerStarter:
 
     def execute_in_container(self, command: Union[str, list[str]]) -> tuple[int, bytes]:
         result = self.anvil.exec(command)
-        if result.exit_code != 0:
-            self.log.error(f"Error while executing command in container: {result}")
+        if isinstance(result, ExecResult) and result.exit_code != 0:
+            self.log.error("Error while executing command in container: %s", result)
             raise RuntimeError("Error while executing command in container")
+        return result
 
     def start(self):
         self.log.info("[CONTAINER] [ANVIL] Anvil container is starting")
@@ -61,7 +65,7 @@ class AnvilTestContainerStarter:
             {"forking": {"jsonRpcUrl": self.FORK_URL, "blockNumber": hex(block_number)}}
         ]
 
-        w3.manager.request_blocking("anvil_reset", params)
+        w3.manager.request_blocking(RPCEndpoint("anvil_reset"), params)
 
         current_block_number = w3.eth.block_number
         assert (
