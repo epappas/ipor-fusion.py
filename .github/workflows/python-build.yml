@@ -61,7 +61,7 @@ env:
   POETRY_VIRTUALENVS_PATH: "~/.cache/pypoetry/virtualenvs"
 
 jobs:
-  smart-contracts:
+  python:
     runs-on: ubuntu-latest
 
     steps:
