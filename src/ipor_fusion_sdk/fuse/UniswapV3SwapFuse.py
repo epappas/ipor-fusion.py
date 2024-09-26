@@ -35,7 +35,7 @@ class UniswapV3SwapFuseEnterData:
     return self.function_selector() + self.encode()
 
 
-class SwapFuseUniswapV3:
+class UniswapV3SwapFuse:
   PROTOCOL_ID = "uniswap-v3"
 
   def __init__(
@@ -63,4 +63,8 @@ class SwapFuseUniswapV3:
   def supports(self, market_id: MarketId) -> bool:
     if market_id is None:
       raise ValueError("marketId is required")
+    if not hasattr(market_id, 'protocol_id'):
+      raise AttributeError("marketId does not have attribute 'protocol_id'")
+    if not hasattr(market_id, 'market_id'):
+      raise AttributeError("marketId does not have attribute 'market_id'")
     return market_id.protocol_id == self.PROTOCOL_ID and market_id.market_id == "swap"
