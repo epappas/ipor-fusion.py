@@ -8,6 +8,8 @@ from web3.contract.contract import ContractFunction
 from ipor_fusion_sdk.fuse import Fuse
 from ipor_fusion_sdk.fuse.FuseActionDynamicStruct import FuseActionDynamicStruct
 from ipor_fusion_sdk.operation.Claim import Claim
+from ipor_fusion_sdk.operation.Collect import Collect
+from ipor_fusion_sdk.operation.DecreasePosition import DecreasePosition
 from ipor_fusion_sdk.operation.NewPosition import NewPosition
 from ipor_fusion_sdk.operation.Operation import Operation
 from ipor_fusion_sdk.operation.Supply import Supply
@@ -88,7 +90,7 @@ class VaultExecuteCallFactory:
                 operation.min_out_amount(),
             )
         if isinstance(operation, NewPosition):
-            return fuse.create_fuse_new_position_action(
+            return fuse.create_fuse_enter_action(
                 operation.token0(),
                 operation.token1(),
                 operation.fee(),
@@ -100,6 +102,17 @@ class VaultExecuteCallFactory:
                 operation.amount1_min(),
                 operation.deadline(),
             )
+        if isinstance(operation, DecreasePosition):
+            return fuse.create_fuse_exit_action(
+                token_id=operation.token_id(),
+                liquidity=operation.liquidity(),
+                amount0_min=operation.amount0_min(),
+                amount1_min=operation.amount1_min(),
+                deadline=operation.deadline(),
+            )
+        if isinstance(operation, Collect):
+            return fuse.create_fuse_enter_action(token_ids=operation.token_ids())
+
         raise NotImplementedError(f"Unsupported operation: {type(operation).__name__}")
 
     def create_claim_action_data(self, claim: Claim) -> List:

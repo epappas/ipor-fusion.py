@@ -1,10 +1,12 @@
+from web3.types import TxReceipt
+
 from constants import (
     GAS_PRICE_MARGIN,
     DEFAULT_TRANSACTION_MAX_PRIORITY_FEE,
 )
 
 
-def execute_transaction(web3, contract_address, function, account):
+def execute_transaction(web3, contract_address, function, account) -> TxReceipt:
     nonce = web3.eth.get_transaction_count(account.address)
     gas_price = web3.eth.gas_price
     max_fee_per_gas = calculate_max_fee_per_gas(gas_price)
@@ -32,6 +34,7 @@ def execute_transaction(web3, contract_address, function, account):
     tx_hash = web3.eth.send_raw_transaction(signed_tx.raw_transaction)
     receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
     assert receipt["status"] == 1, "Transaction failed"
+    return receipt
 
 
 def read_token_balance(web3, holder, token):

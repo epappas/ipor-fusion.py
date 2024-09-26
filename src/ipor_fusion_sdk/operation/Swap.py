@@ -3,6 +3,7 @@ from ipor_fusion_sdk.operation.Operation import Operation
 
 
 class Swap(Operation):
+
     def __init__(
         self,
         market_id: MarketId,
