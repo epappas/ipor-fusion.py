@@ -13,7 +13,7 @@ class IncreasePosition(Operation):
         amount1_desired: int,
         amount0_min: int,
         amount1_min: int,
-        deadline: int
+        deadline: int,
     ):
         if market_id is None:
             raise ValueError("market_id is required")

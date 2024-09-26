@@ -8,108 +8,140 @@ from ipor_fusion_sdk.fuse.FuseActionDynamicStruct import FuseActionDynamicStruct
 
 
 class UniswapV3NewPositionFuseEnterData:
-  def __init__(
-      self,
-      token0: str,
-      token1: str,
-      fee: int,
-      tick_lower: int,
-      tick_upper: int,
-      amount0_desired: int,
-      amount1_desired: int,
-      amount0_min: int,
-      amount1_min: int,
-      deadline: int):
-    self.token0 = token0
-    self.token1 = token1
-    self.fee = fee
-    self.tick_lower = tick_lower
-    self.tick_upper = tick_upper
-    self.amount0_desired = amount0_desired
-    self.amount1_desired = amount1_desired
-    self.amount0_min = amount0_min
-    self.amount1_min = amount1_min
-    self.deadline = deadline
+    def __init__(
+        self,
+        token0: str,
+        token1: str,
+        fee: int,
+        tick_lower: int,
+        tick_upper: int,
+        amount0_desired: int,
+        amount1_desired: int,
+        amount0_min: int,
+        amount1_min: int,
+        deadline: int,
+    ):
+        self.token0 = token0
+        self.token1 = token1
+        self.fee = fee
+        self.tick_lower = tick_lower
+        self.tick_upper = tick_upper
+        self.amount0_desired = amount0_desired
+        self.amount1_desired = amount1_desired
+        self.amount0_min = amount0_min
+        self.amount1_min = amount1_min
+        self.deadline = deadline
 
-  def encode(self) -> bytes:
-    return encode(['(address,address,uint24,int24,int24,uint256,uint256,uint256,uint256,uint256)'],
-                  [[self.token0, self.token1, self.fee, self.tick_lower, self.tick_upper, self.amount0_desired,
-                    self.amount1_desired, self.amount0_min, self.amount1_min, self.deadline]])
+    def encode(self) -> bytes:
+        return encode(
+            [
+                "(address,address,uint24,int24,int24,uint256,uint256,uint256,uint256,uint256)"
+            ],
+            [
+                [
+                    self.token0,
+                    self.token1,
+                    self.fee,
+                    self.tick_lower,
+                    self.tick_upper,
+                    self.amount0_desired,
+                    self.amount1_desired,
+                    self.amount0_min,
+                    self.amount1_min,
+                    self.deadline,
+                ]
+            ],
+        )
 
-  @staticmethod
-  def function_selector() -> bytes:
-    return function_signature_to_4byte_selector(
-      "enter((address,address,uint24,int24,int24,uint256,uint256,uint256,uint256,uint256))")
+    @staticmethod
+    def function_selector() -> bytes:
+        return function_signature_to_4byte_selector(
+            "enter((address,address,uint24,int24,int24,uint256,uint256,uint256,uint256,uint256))"
+        )
 
-  def function_call(self) -> bytes:
-    return self.function_selector() + self.encode()
+    def function_call(self) -> bytes:
+        return self.function_selector() + self.encode()
 
 
 class UniswapV3NewPositionFuseExitData:
-  def __init__(
-      self, tokenIds: List[int]
+    def __init__(self, tokenIds: List[int]):
+        self.tokenIds = tokenIds
 
-  ):
-    self.tokenIds = tokenIds
+    def encode(self) -> bytes:
+        return encode(["(uint256[])"], [[self.tokenIds]])
 
-  def encode(self) -> bytes:
-    return encode(['(uint256[])'], [[self.tokenIds]])
+    @staticmethod
+    def function_selector() -> bytes:
+        return function_signature_to_4byte_selector("enter((uint256[]))")
 
-  @staticmethod
-  def function_selector() -> bytes:
-    return function_signature_to_4byte_selector("enter((uint256[]))")
-
-  def function_call(self) -> bytes:
-    return self.function_selector() + self.encode()
+    def function_call(self) -> bytes:
+        return self.function_selector() + self.encode()
 
 
 class UniswapV3NewPositionFuse:
-  PROTOCOL_ID = "uniswap-v3"
+    PROTOCOL_ID = "uniswap-v3"
 
-  def __init__(
-      self, uniswap_v_3_new_position_fuse_address: str):
-    self.uniswap_v_3_new_position_fuse_address = self._require_non_null(uniswap_v_3_new_position_fuse_address,
-                                                                        "uniswap_v_3_new_position_fuse_address is required")
+    def __init__(self, uniswap_v_3_new_position_fuse_address: str):
+        self.uniswap_v_3_new_position_fuse_address = self._require_non_null(
+            uniswap_v_3_new_position_fuse_address,
+            "uniswap_v_3_new_position_fuse_address is required",
+        )
 
-  def create_fuse_enter_action(
-      self,
-      token0: str,
-      token1: str,
-      fee: int,
-      tick_lower: int,
-      tick_upper: int,
-      amount0_desired: int,
-      amount1_desired: int,
-      amount0_min: int,
-      amount1_min: int,
-      deadline: int):
-    data = UniswapV3NewPositionFuseEnterData(token0,
-                                             token1,
-                                             fee,
-                                             tick_lower,
-                                             tick_upper,
-                                             amount0_desired,
-                                             amount1_desired,
-                                             amount0_min,
-                                             amount1_min,
-                                             deadline)
-    return [FuseActionDynamicStruct(self.uniswap_v_3_new_position_fuse_address, data.function_call())]
+    def create_fuse_enter_action(
+        self,
+        token0: str,
+        token1: str,
+        fee: int,
+        tick_lower: int,
+        tick_upper: int,
+        amount0_desired: int,
+        amount1_desired: int,
+        amount0_min: int,
+        amount1_min: int,
+        deadline: int,
+    ):
+        data = UniswapV3NewPositionFuseEnterData(
+            token0,
+            token1,
+            fee,
+            tick_lower,
+            tick_upper,
+            amount0_desired,
+            amount1_desired,
+            amount0_min,
+            amount1_min,
+            deadline,
+        )
+        return [
+            FuseActionDynamicStruct(
+                self.uniswap_v_3_new_position_fuse_address, data.function_call()
+            )
+        ]
 
-  def create_fuse_exit_action(self, tokenIds: List[int]) -> List[FuseActionDynamicStruct]:
-    data = UniswapV3NewPositionFuseExitData(tokenIds)
-    return [FuseActionDynamicStruct(self.uniswap_v_3_new_position_fuse_address, data.function_call())]
+    def create_fuse_exit_action(
+        self, tokenIds: List[int]
+    ) -> List[FuseActionDynamicStruct]:
+        data = UniswapV3NewPositionFuseExitData(tokenIds)
+        return [
+            FuseActionDynamicStruct(
+                self.uniswap_v_3_new_position_fuse_address, data.function_call()
+            )
+        ]
 
-  @staticmethod
-  def _require_non_null(value, message):
-    if value is None:
-      raise ValueError(message)
-    return value
+    @staticmethod
+    def _require_non_null(value, message):
+        if value is None:
+            raise ValueError(message)
+        return value
 
-  def supports(self, market_id: MarketId) -> bool:
-    if market_id is None:
-      raise ValueError("marketId is required")
-    if not hasattr(market_id, 'protocol_id'):
-      raise AttributeError("marketId does not have attribute 'protocol_id'")
-    if not hasattr(market_id, 'market_id'):
-      raise AttributeError("marketId does not have attribute 'market_id'")
-    return market_id.protocol_id == self.PROTOCOL_ID and market_id.market_id == "new-position"
+    def supports(self, market_id: MarketId) -> bool:
+        if market_id is None:
+            raise ValueError("marketId is required")
+        if not hasattr(market_id, "protocol_id"):
+            raise AttributeError("marketId does not have attribute 'protocol_id'")
+        if not hasattr(market_id, "market_id"):
+            raise AttributeError("marketId does not have attribute 'market_id'")
+        return (
+            market_id.protocol_id == self.PROTOCOL_ID
+            and market_id.market_id == "new-position"
+        )

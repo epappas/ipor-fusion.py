@@ -15,7 +15,7 @@ class NewPosition(Operation):
         amount1_desired: int,
         amount0_min: int,
         amount1_min: int,
-        deadline: int
+        deadline: int,
     ):
         if market_id is None:
             raise ValueError("market_id is required")
@@ -86,11 +86,13 @@ class NewPosition(Operation):
         return self._deadline
 
     def __str__(self) -> str:
-        return (f"NewPosition[marketId={self._market_id}, token0={self._token0}, "
-                f"token1={self._token1}, fee={self._fee}, "
-                f"tickLower={self._tick_lower}, tickUpper={self._tick_upper}, "
-                f"amount0Desired={self._amount0_desired}, amount1Desired={self._amount1_desired}, "
-                f"amount0Min={self._amount0_min}, amount1Min={self._amount1_min}, deadline={self._deadline}]")
+        return (
+            f"NewPosition[marketId={self._market_id}, token0={self._token0}, "
+            f"token1={self._token1}, fee={self._fee}, "
+            f"tickLower={self._tick_lower}, tickUpper={self._tick_upper}, "
+            f"amount0Desired={self._amount0_desired}, amount1Desired={self._amount1_desired}, "
+            f"amount0Min={self._amount0_min}, amount1Min={self._amount1_min}, deadline={self._deadline}]"
+        )
 
     def __repr__(self) -> str:
         return self.__str__()
