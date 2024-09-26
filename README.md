@@ -63,7 +63,7 @@ poetry run pytest -v -s
 
 #### Run pylint
 ```bash 
-poetry run pylint --rcfile=pylintrc.toml --verbose --recursive=y 
+poetry run pylint --rcfile=pylintrc.toml --verbose --recursive=y .
 ```
 
 #### Run black
