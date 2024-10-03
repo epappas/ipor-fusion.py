@@ -5,6 +5,8 @@ DEFAULT_TRANSACTION_MAX_PRIORITY_FEE = 2_000_000_000
 ONE_HUNDRED = 100
 USDC = Web3.to_checksum_address("0xaf88d065e77c8cc2239327c5edb3a432268e5831")
 USDT = Web3.to_checksum_address("0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9")
+DAI = Web3.to_checksum_address("0xda10009cbd5d07dd0cecc66161fc93d7c9000da1")
+WETH = Web3.to_checksum_address("0x82aF49447D8a07e3bd95BD0d56f35241523fBab1")
 
 PLASMA_VAULT_V3 = Web3.to_checksum_address("0x862644e627eb0cdeff10f234bea51b8dfd6ea8e8")
 PLASMA_VAULT_V4 = Web3.to_checksum_address("0x707A88CDF02e2b8c98Aff08Be245B835E2784C8b")

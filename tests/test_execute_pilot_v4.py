@@ -21,6 +21,7 @@ from constants import (
     COLLECT_SWAP_FUSE_UNISWAP_V3_ADDRESS,
     SWAP_FUSE_UNIVERSAL_TOKEN_SWAPPER_ADDRESS,
     UNISWAP_V3_UNIVERSAL_ROUTER_ADDRESS,
+    WETH,
 )
 from ipor_fusion_sdk.VaultExecuteCallFactory import VaultExecuteCallFactory
 from ipor_fusion_sdk.fuse.UniswapV3CollectFuse import UniswapV3CollectFuse
@@ -78,6 +79,7 @@ def setup_fixture(anvil):
 def test_should_swap_when_one_hop_uniswap_v3(web3, account, vault_execute_call_factory):
     # given
     depositAmount = int(100e6)
+    minOutAmount = int(99e6)
 
     vault_usdc_balance_before_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDC)
     vault_usdt_balance_before_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDT)
@@ -92,14 +94,85 @@ def test_should_swap_when_one_hop_uniswap_v3(web3, account, vault_execute_call_f
     )
     function_call_0 = function_selector_0 + function_args_0
 
-    path = encode_packed(["address", "uint24", "address"], [USDC, 3000, USDT])
+    path = encode_packed(["address", "uint24", "address"], [USDC, 100, USDT])
     inputs = [
         encode(
             ["address", "uint256", "uint256", "bytes", "bool"],
             [
                 "0x0000000000000000000000000000000000000001",
                 depositAmount,
-                0,
+                minOutAmount,
+                path,
+                False,
+            ],
+        )
+    ]
+    function_selector_1 = function_signature_to_4byte_selector("execute(bytes,bytes[])")
+    function_args_1 = encode(
+        ["bytes", "bytes[]"], [encode_packed(["bytes1"], [bytes.fromhex("00")]), inputs]
+    )
+    function_call_1 = function_selector_1 + function_args_1
+
+    data = [function_call_0, function_call_1]
+
+    swap = universal_token_swapper_fuse.swap(USDC, USDT, depositAmount, targets, data)
+
+    # when
+    execute_transaction(
+        web3,
+        PLASMA_VAULT_V4,
+        vault_execute_call_factory.create_execute_call_from_action(swap),
+        account,
+    )
+
+    # then
+    vault_usdc_balance_after_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDC)
+    vault_usdt_balance_after_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDT)
+
+    vault_usdc_balance_change = (
+        vault_usdc_balance_after_swap - vault_usdc_balance_before_swap
+    )
+    vault_usdt_balance_change = (
+        vault_usdt_balance_after_swap - vault_usdt_balance_before_swap
+    )
+
+    assert (
+        vault_usdc_balance_change == -depositAmount
+    ), "vault_usdc_balance_change == -depositAmount"
+    assert (
+        98e6 < vault_usdt_balance_change < 100e6
+    ), "98e6 < vault_usdt_balance_change < 100e6"
+
+
+def test_should_swap_when_multiple_hop(web3, account, vault_execute_call_factory):
+    # given
+    depositAmount = int(100e6)
+    minOutAmount = int(99e6)
+
+    vault_usdc_balance_before_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDC)
+    vault_usdt_balance_before_swap = read_token_balance(web3, PLASMA_VAULT_V4, USDT)
+
+    targets = [USDC, UNISWAP_V3_UNIVERSAL_ROUTER_ADDRESS]
+
+    function_selector_0 = function_signature_to_4byte_selector(
+        "transfer(address,uint256)"
+    )
+    function_args_0 = encode(
+        ["address", "uint256"], [UNISWAP_V3_UNIVERSAL_ROUTER_ADDRESS, depositAmount]
+    )
+    function_call_0 = function_selector_0 + function_args_0
+
+    path = encode_packed(
+        ["address", "uint24", "address", "uint24", "address"],
+        [USDC, 500, WETH, 3000, USDT],
+    )
+    inputs = [
+        encode(
+            ["address", "uint256", "uint256", "bytes", "bool"],
+            [
+                "0x0000000000000000000000000000000000000001",
+                depositAmount,
+                minOutAmount,
                 path,
                 False,
             ],
