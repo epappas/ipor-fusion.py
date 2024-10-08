@@ -22,3 +22,15 @@ class VaultExecuteCallFactory:
             function_signature_to_4byte_selector("execute((address,bytes)[])")
             + encoded_arguments
         )
+
+    @staticmethod
+    def create_claim_rewards_call(claims: List[FuseAction]) -> bytes:
+        bytes_data = []
+        for action in claims:
+            bytes_data.append([action.fuse, action.data])
+        bytes_ = "(address,bytes)[]"
+        encoded_arguments = encode([bytes_], [bytes_data])
+        return (
+            function_signature_to_4byte_selector("claimRewards((address,bytes)[])")
+            + encoded_arguments
+        )

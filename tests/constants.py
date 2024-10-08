@@ -55,21 +55,6 @@ class ARBITRUM:
             COMPOUND_V3_FUSE = Web3.to_checksum_address(
                 "0x34BCBC3f10CE46894Bb39De0C667257EFb35c079"
             )
-            RAMSES_V2_SWAP_FUSE = Web3.to_checksum_address(
-                "0x0000000000000000000000000000000000000000"
-            )
-            RAMSES_V2_NEW_POSITION_SWAP_FUSE = Web3.to_checksum_address(
-                "0x0000000000000000000000000000000000000000"
-            )
-            RAMSES_V2_MODIFY_POSITION_SWAP_FUSE = Web3.to_checksum_address(
-                "0x0000000000000000000000000000000000000000"
-            )
-            RAMSES_V2_COLLECT_SWAP_FUSE = Web3.to_checksum_address(
-                "0x0000000000000000000000000000000000000000"
-            )
-            RAMSES_V2_CLAIM_FUSE = Web3.to_checksum_address(
-                "0x0000000000000000000000000000000000000000"
-            )
 
         class V4:
             PLASMA_VAULT = Web3.to_checksum_address(
@@ -93,6 +78,18 @@ class ARBITRUM:
             UNIVERSAL_TOKEN_SWAPPER_FUSE = Web3.to_checksum_address(
                 "0xB052b0D983E493B4D40DeC75A03D21b70b83c2ca"
             )
+            RAMSES_V2_NEW_POSITION_FUSE = Web3.to_checksum_address(
+                "0x9b8254aB90830E8c3d52eb5Ca3A53ed8A0EE5BD6"
+            )
+            RAMSES_V2_MODIFY_POSITION_FUSE = Web3.to_checksum_address(
+                "0xA4A1940AF863a87ea4f324207039b508B74Dc246"
+            )
+            RAMSES_V2_COLLECT_FUSE = Web3.to_checksum_address(
+                "0x0a2AF02b2D1d3CcF870Ba773B753Bb948527B95b"
+            )
+            RAMSES_V2_CLAIM_FUSE = Web3.to_checksum_address(
+                "0xD41501B46a68DeA06a460fD79a7bCda9e3b92674"
+            )
 
     class UNISWAP:
         class V3:
@@ -102,8 +99,8 @@ class ARBITRUM:
 
     class RAMSES:
         class V2:
-            RAM = Web3.to_checksum_address("0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418")
-            X_RAM = Web3.to_checksum_address(
+            REM = Web3.to_checksum_address("0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418")
+            X_REM = Web3.to_checksum_address(
                 "0xAAA1eE8DC1864AE49185C368e8c64Dd780a50Fb7"
             )
 
