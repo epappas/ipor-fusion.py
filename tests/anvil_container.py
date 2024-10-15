@@ -5,7 +5,6 @@ from typing import Union
 
 from docker.models.containers import ExecResult
 from dotenv import load_dotenv
-
 from testcontainers.core.container import DockerContainer
 from web3 import Web3, HTTPProvider
 from web3.types import RPCEndpoint
@@ -73,3 +72,29 @@ class AnvilTestContainerStarter:
         ), f"Current block number is {current_block_number}, expected {block_number}"
 
         self.log.info("[CONTAINER] [ANVIL] Anvil fork reset")
+
+    def move_time(self, delta_time_argument: int):
+        self.log.info("[CONTAINER] [ANVIL] Anvil evm increaseTime")
+        w3 = self.get_client()
+
+        w3.manager.request_blocking(
+            RPCEndpoint("evm_increaseTime"), [delta_time_argument]
+        )
+        w3.manager.request_blocking(RPCEndpoint("evm_mine"), [])
+
+        self.log.info("[CONTAINER] [ANVIL] Anvil evm increaseTime")
+
+    def grant_role(self, access_manager, who_to_assign, role):
+        cmd = [
+            "cast",
+            "send",
+            "--unlocked",
+            "--from",
+            "0x4E3C666F0c898a9aE1F8aBB188c6A2CC151E17fC",
+            access_manager,
+            "grantRole(uint64,address,uint32)()",
+            f"{role}",
+            who_to_assign,
+            "0",
+        ]
+        self.execute_in_container(cmd)
