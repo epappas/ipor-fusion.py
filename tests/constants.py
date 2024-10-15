@@ -6,14 +6,23 @@ ONE_HUNDRED = 100
 
 ANVIL_WALLET = Web3.to_checksum_address("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
 
+ALPHA_WALLET = ANVIL_WALLET
+
 # pylint: disable=no-value-for-parameter
 ANVIL_WALLET_PRIVATE_KEY = Account.from_key(
     "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 )
 
+ALPHA_PRIVATE_KEY = ANVIL_WALLET_PRIVATE_KEY
+
 ONE_HUNDRED_USDC = 100 * 10**6
 GAS_PRICE_MARGIN = 25
 GAS_MARGIN = 20
+
+DAY = 24 * 60 * 60
+WEEK = 7 * DAY
+MONTH = 30 * DAY
+YEAR = 365 * DAY
 
 
 class ARBITRUM:
@@ -78,17 +87,31 @@ class ARBITRUM:
             UNIVERSAL_TOKEN_SWAPPER_FUSE = Web3.to_checksum_address(
                 "0xB052b0D983E493B4D40DeC75A03D21b70b83c2ca"
             )
+
+        class V5:
+            PLASMA_VAULT = Web3.to_checksum_address(
+                "0x3F97CEa640B8B93472143f87a96d5A86f1F5167F"
+            )
+            ACCESS_MANAGER = Web3.to_checksum_address(
+                "0x18C11d79bF4A14Edd9458455C7E10fc560cCfe1e"
+            )
+            REWARDS_CLAIM_MANAGER = Web3.to_checksum_address(
+                "0xfe6AE161e0C8bE9FAe194476c0c78Af43d1B50B4"
+            )
+            UNISWAP_V3_SWAP_FUSE = Web3.to_checksum_address(
+                "0x84C5aB008C66d664681698A9E4536D942B916F89"
+            )
             RAMSES_V2_NEW_POSITION_FUSE = Web3.to_checksum_address(
-                "0x9b8254aB90830E8c3d52eb5Ca3A53ed8A0EE5BD6"
+                "0xb025CC5e73e2966e12e4d859360B51c1D0F45EA3"
             )
             RAMSES_V2_MODIFY_POSITION_FUSE = Web3.to_checksum_address(
-                "0xA4A1940AF863a87ea4f324207039b508B74Dc246"
+                "0xD41501B46a68DeA06a460fD79a7bCda9e3b92674"
             )
             RAMSES_V2_COLLECT_FUSE = Web3.to_checksum_address(
-                "0x0a2AF02b2D1d3CcF870Ba773B753Bb948527B95b"
+                "0x859F5c9D5CB2800A9Ff72C56d79323EA01cB30b9"
             )
             RAMSES_V2_CLAIM_FUSE = Web3.to_checksum_address(
-                "0xD41501B46a68DeA06a460fD79a7bCda9e3b92674"
+                "0x6F292d12a2966c9B796642cAFD67549bbbE3D066"
             )
 
     class UNISWAP:
@@ -99,7 +122,7 @@ class ARBITRUM:
 
     class RAMSES:
         class V2:
-            REM = Web3.to_checksum_address("0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418")
+            RAM = Web3.to_checksum_address("0xAAA6C1E32C55A7Bfa8066A6FAE9b42650F262418")
             X_REM = Web3.to_checksum_address(
                 "0xAAA1eE8DC1864AE49185C368e8c64Dd780a50Fb7"
             )
