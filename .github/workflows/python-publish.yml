@@ -6,12 +6,6 @@ on:
     secrets:
       ARBITRUM_PROVIDER_URL:
         required: true
-      PYPI_USERNAME:
-        required: false
-      PYPI_PASSWORD:
-        required: false
-      PYPI_TOKEN:
-        required: false
 
     inputs:
       python-version:
@@ -65,19 +59,12 @@ jobs:
       name: release
       url: https://pypi.org/p/ipor-fusion
     permissions:
-      #actions: none
       attestations: write
       checks: read
       contents: write
       deployments: write
       id-token: write
-      #issues: none
-      #discussions: none
       packages: write
-      #pages: none
-      #pull-requests: none
-      #repository-projects: none
-      #security-events: none
       statuses: read
 
     steps:
