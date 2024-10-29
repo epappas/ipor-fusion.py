@@ -62,7 +62,7 @@ jobs:
   python:
     runs-on: ubuntu-latest
     environment:
-      name: pypi
+      name: release
       url: https://pypi.org/p/ipor-fusion
     permissions:
       #actions: none
