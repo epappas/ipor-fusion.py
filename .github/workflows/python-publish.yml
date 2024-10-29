@@ -65,8 +65,20 @@ jobs:
       name: pypi
       url: https://pypi.org/p/ipor-fusion
     permissions:
-      id-token: write
+      #actions: none
       attestations: write
+      checks: read
+      contents: write
+      deployments: write
+      id-token: write
+      #issues: none
+      #discussions: none
+      packages: write
+      #pages: none
+      #pull-requests: none
+      #repository-projects: none
+      #security-events: none
+      statuses: read
 
     steps:
       - name: Checkout
