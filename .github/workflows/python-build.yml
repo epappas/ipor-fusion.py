@@ -6,12 +6,6 @@ on:
     secrets:
       ARBITRUM_PROVIDER_URL:
         required: true
-      PYPI_USERNAME:
-        required: false
-      PYPI_PASSWORD:
-        required: false
-      PYPI_TOKEN:
-        required: false
 
     inputs:
       python-version:
