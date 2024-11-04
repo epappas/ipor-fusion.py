@@ -1,6 +1,6 @@
 from typing import List
 
-from eth_abi import encode
+from eth_abi import encode, decode
 from eth_utils import function_signature_to_4byte_selector
 from web3.types import TxReceipt
 
@@ -20,8 +20,11 @@ class RewardsClaimManager:
         function = self.__transfer(asset, to, amount)
         return self._transaction_executor.execute(self._rewards_claim_manager, function)
 
-    def balance_of(self, asset: str) -> int:
-        return self._transaction_executor.balance_of(self._rewards_claim_manager, asset)
+    def balance_of(self) -> int:
+        signature = function_signature_to_4byte_selector("balanceOf()")
+        read = self._transaction_executor.read(self._rewards_claim_manager, signature)
+        (result,) = decode(["uint256"], read)
+        return result
 
     def claim_rewards(self, claims: List[FuseAction]) -> TxReceipt:
         function = self.__claim_rewards(claims)
