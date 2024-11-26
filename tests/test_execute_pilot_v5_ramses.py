@@ -1,3 +1,4 @@
+import os
 import time
 
 from eth_abi import decode
@@ -5,27 +6,41 @@ from web3 import Web3
 from web3.types import TxReceipt
 
 from constants import ARBITRUM, ANVIL_WALLET_PRIVATE_KEY, DAY, MONTH
+from UniswapV3UniversalRouter import UniswapV3UniversalRouter
+from ipor_fusion.AnvilTestContainerStarter import AnvilTestContainerStarter
 from ipor_fusion.CheatingPlasmaVaultSystemFactory import (
     CheatingPlasmaVaultSystemFactory,
 )
 from ipor_fusion.PlasmaVaultSystemFactory import PlasmaVaultSystemFactory
 from ipor_fusion.Roles import Roles
 
+provider_url = os.getenv("ARBITRUM_PROVIDER_URL")
 
-def test_should_open_new_position_ramses_v2(
-    anvil,
-):
+anvil = AnvilTestContainerStarter(provider_url, 261946538)
+anvil.start()
+
+system = PlasmaVaultSystemFactory(
+    provider_url=anvil.get_anvil_http_url(),
+    private_key=ANVIL_WALLET_PRIVATE_KEY,
+).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
+
+cheating = CheatingPlasmaVaultSystemFactory(
+    provider_url=anvil.get_anvil_http_url(),
+    private_key=ANVIL_WALLET_PRIVATE_KEY,
+).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
+
+uniswap_v_3_universal_router_address = Web3.to_checksum_address(
+    "0x5E325eDA8064b456f4781070C0738d849c824258"
+)
+uniswap_v3_universal_router = UniswapV3UniversalRouter(
+    transaction_executor=system.transaction_executor(),
+    universal_router_address=uniswap_v_3_universal_router_address,
+)
+
+
+def test_should_open_new_position_ramses_v2():
+    # setup
     anvil.reset_fork(261946538)
-
-    system = PlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
-
-    cheating = CheatingPlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating.prank(system.access_manager().owner())
     cheating.access_manager().grant_role(Roles.ALPHA_ROLE, system.alpha(), 0)
@@ -83,21 +98,9 @@ def test_should_open_new_position_ramses_v2(
     ), ("new_position_usdt_change == -int(499000000)")
 
 
-def test_should_collect_all_after_decrease_liquidity(
-    anvil,
-):
+def test_should_collect_all_after_decrease_liquidity():
     # given
     anvil.reset_fork(261946538)
-
-    system = PlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
-
-    cheating = CheatingPlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating.prank(system.access_manager().owner())
     cheating.access_manager().grant_role(Roles.ALPHA_ROLE, system.alpha(), 0)
@@ -176,21 +179,9 @@ def test_should_collect_all_after_decrease_liquidity(
     assert new_token_id == close_token_id, "new_token_id == close_token_id"
 
 
-def test_should_increase_liquidity(
-    anvil,
-):
+def test_should_increase_liquidity():
     # given
     anvil.reset_fork(261946538)  # 261946538 - 1002 USDC on pilot V5
-
-    system = PlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
-
-    cheating = CheatingPlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating.prank(system.access_manager().owner())
     cheating.access_manager().grant_role(Roles.ALPHA_ROLE, system.alpha(), 0)
@@ -261,21 +252,9 @@ def test_should_increase_liquidity(
     ), "increase_position_change_usdt == -90_509683"
 
 
-def test_should_claim_rewards_from_ramses_v2_swap_and_transfer_to_rewards_manager(
-    anvil, uniswap_v3_universal_router
-):
+def test_should_claim_rewards_from_ramses_v2_swap_and_transfer_to_rewards_manager():
     # given
     anvil.reset_fork(261946538)
-
-    system = PlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
-
-    cheating = CheatingPlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating.prank(system.access_manager().owner())
     cheating.access_manager().grant_role(Roles.ATOMIST_ROLE, system.alpha(), 0)
