@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.4.0 (2024-11-26)
+
+### Features
+
+* feat: Anvil configuration ([`07f4559`](https://github.com/IPOR-Labs/ipor-fusion.py/commit/07f455998665792ba1af5c2a4a1a650b520740a8))
+
+### Unknown
+
+* Merge pull request #40 from IPOR-Labs/develop
+
+feat: Anvil configuration ([`a7f7223`](https://github.com/IPOR-Labs/ipor-fusion.py/commit/a7f72235611cc53ea0654b29cb7df05bc88ef40c))
+
+
 ## v0.3.0 (2024-11-21)
 
 ### Build System
