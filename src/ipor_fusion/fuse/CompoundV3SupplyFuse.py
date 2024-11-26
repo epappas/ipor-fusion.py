@@ -7,16 +7,11 @@ from ipor_fusion.fuse.FuseAction import FuseAction
 
 class CompoundV3SupplyFuse:
     PROTOCOL_ID = "compound-v3"
-    ENTER = "enter"
-    EXIT = "exit"
 
-    def __init__(self, fuse_address: str, asset_address: str):
+    def __init__(self, fuse_address: str):
         if not fuse_address:
             raise ValueError("fuseAddress is required")
-        if not asset_address:
-            raise ValueError("assetAddress is required")
         self.fuse_address = fuse_address
-        self.asset_address = asset_address
 
     def supply(self, market_id: MarketId, amount: int) -> FuseAction:
         compound_v3_supply_fuse_enter_data = CompoundV3SupplyFuseEnterData(
@@ -41,7 +36,6 @@ class CompoundV3SupplyFuseEnterData:
         self.amount = amount
 
     def encode(self) -> bytes:
-        # ABI encoding: address and uint256
         return encode(["address", "uint256"], [self.asset, self.amount])
 
     @staticmethod
@@ -58,7 +52,6 @@ class CompoundV3SupplyFuseExitData:
         self.amount = amount
 
     def encode(self) -> bytes:
-        # ABI encoding: address and uint256
         return encode(["address", "uint256"], [self.asset, self.amount])
 
     @staticmethod
