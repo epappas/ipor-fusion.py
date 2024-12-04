@@ -35,6 +35,26 @@ class RewardsClaimManager:
         (result,) = decode(["uint256"], read)
         return result
 
+    def get_vesting_data(self) -> (int, int, int, int):
+        signature = function_signature_to_4byte_selector("getVestingData()")
+        read = self._transaction_executor.read(
+            self._rewards_claim_manager_address, signature
+        )
+        (
+            (
+                vesting_time,
+                update_balance_timestamp,
+                transferred_tokens,
+                last_update_balance,
+            ),
+        ) = decode(["(uint32,uint32,uint128,uint128)"], read)
+        return (
+            vesting_time,
+            update_balance_timestamp,
+            transferred_tokens,
+            last_update_balance,
+        )
+
     def get_rewards_fuses(self) -> List[str]:
         signature = function_signature_to_4byte_selector("getRewardsFuses()")
         read = self._transaction_executor.read(
