@@ -1,6 +1,25 @@
 # CHANGELOG
 
 
+## v0.5.0 (2024-12-10)
+
+### Features
+
+* feat: add new uniswap v3 new position fuse ([`0f2d6aa`](https://github.com/IPOR-Labs/ipor-fusion.py/commit/0f2d6aa3972fbdbd88d1453e6eafee761acfb36d))
+
+* feat: check vault ([`ca8d62e`](https://github.com/IPOR-Labs/ipor-fusion.py/commit/ca8d62e83fa1c8915837625b6f329377fab84afb))
+
+* feat: Get accounts with roles ([`8896ee6`](https://github.com/IPOR-Labs/ipor-fusion.py/commit/8896ee668abad5be71c21ed6af17bf2cda77abd6))
+
+* feat: get_accounts_with_roles ([`b22a729`](https://github.com/IPOR-Labs/ipor-fusion.py/commit/b22a7294e8d154041f5e1f930da462114d9660c3))
+
+### Unknown
+
+* Merge pull request #45 from IPOR-Labs/develop
+
+Develop ([`7fbefcb`](https://github.com/IPOR-Labs/ipor-fusion.py/commit/7fbefcb2c20cee13a4d69b40e19760cdb1a37c13))
+
+
 ## v0.4.0 (2024-11-26)
 
 ### Features
