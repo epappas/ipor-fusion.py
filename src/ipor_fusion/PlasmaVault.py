@@ -25,6 +25,12 @@ class PlasmaVault:
         function = self.__execute(actions)
         return self._transaction_executor.execute(self._plasma_vault_address, function)
 
+    def prepare_transaction(self, actions: List[FuseAction]) -> TxReceipt:
+        function = self.__execute(actions)
+        return self._transaction_executor.prepare_transaction(
+            self._plasma_vault_address, function
+        )
+
     def deposit(self, assets: int, receiver: str) -> TxReceipt:
         function = self.__deposit(assets, receiver)
         return self._transaction_executor.execute(self._plasma_vault_address, function)
@@ -153,6 +159,13 @@ class PlasmaVault:
             ["uint256", "address", "address"], [assets, receiver, owner]
         )
         return self._transaction_executor.execute(
+            self._plasma_vault_address, sig + encoded_args
+        )
+
+    def get_market_substrates(self, market_id: int) -> bytes:
+        sig = function_signature_to_4byte_selector("getMarketSubstrates(uint256)")
+        encoded_args = encode(["uint256"], [market_id])
+        return self._transaction_executor.read(
             self._plasma_vault_address, sig + encoded_args
         )
 
