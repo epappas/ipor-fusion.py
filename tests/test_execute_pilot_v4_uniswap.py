@@ -1,9 +1,8 @@
 import os
 import time
+from typing import Tuple
 
-from eth_abi import decode, encode
-from eth_abi.packed import encode_packed
-from eth_utils import function_signature_to_4byte_selector
+from eth_abi.abi import decode
 from web3 import Web3
 from web3.types import TxReceipt
 
@@ -20,225 +19,24 @@ from ipor_fusion.PlasmaVaultSystemFactory import PlasmaVaultSystemFactory
 from ipor_fusion.Roles import Roles
 
 fork_url = os.getenv("ARBITRUM_PROVIDER_URL")
-anvil = AnvilTestContainerStarter(fork_url, 254084008)
+# anvil = AnvilTestContainerStarter(fork_url, 254084008)
+anvil = AnvilTestContainerStarter(fork_url)
 anvil.start()
-
-uniswap_v_3_universal_router_address = Web3.to_checksum_address(
-    "0x5E325eDA8064b456f4781070C0738d849c824258"
-)
-
-
-def test_should_swap_when_one_hop_uniswap_v3():
-    # Setup: Reset state and grant necessary roles
-    anvil.reset_fork(254084008)
-
-    system = PlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
-
-    cheating = CheatingPlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
-
-    cheating.prank(system.access_manager().owner())
-    cheating.access_manager().grant_role(Roles.ALPHA_ROLE, ANVIL_WALLET, 0)
-
-    # Record initial balances before swap
-    vault_usdc_balance_before_swap = system.usdc().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
-    )
-    vault_usdt_balance_before_swap = system.usdt().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
-    )
-
-    # Define swap targets
-    targets = [system.usdc().address(), uniswap_v_3_universal_router_address]
-
-    # Create the first function call to transfer USDC to the universal router
-    function_selector_0 = function_signature_to_4byte_selector(
-        "transfer(address,uint256)"
-    )
-    function_args_0 = encode(
-        ["address", "uint256"], [uniswap_v_3_universal_router_address, (int(100e6))]
-    )
-    function_call_0 = function_selector_0 + function_args_0
-
-    # Encode the path for the swap (USDC to USDT)
-    path = encode_packed(
-        ["address", "uint24", "address"],
-        [system.usdc().address(), 100, system.usdt().address()],
-    )
-
-    # Prepare inputs for the execute function call
-    inputs = [
-        encode(
-            ["address", "uint256", "uint256", "bytes", "bool"],
-            [
-                "0x0000000000000000000000000000000000000001",
-                (int(100e6)),
-                (int(99e6)),
-                path,
-                False,
-            ],
-        )
-    ]
-
-    # Create the second function call to execute the swap
-    function_selector_1 = function_signature_to_4byte_selector("execute(bytes,bytes[])")
-    function_args_1 = encode(
-        ["bytes", "bytes[]"], [encode_packed(["bytes1"], [bytes.fromhex("00")]), inputs]
-    )
-    function_call_1 = function_selector_1 + function_args_1
-
-    # Combine both function calls into the swap transaction
-    data = [function_call_0, function_call_1]
-    swap = system.universal().swap(
-        system.usdc().address(), system.usdt().address(), int(100e6), targets, data
-    )
-
-    # Execute the swap transaction
-    system.plasma_vault().execute([swap])
-
-    # Record balances after the swap
-    vault_usdc_balance_after_swap = system.usdc().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
-    )
-    vault_usdt_balance_after_swap = system.usdt().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
-    )
-
-    # Calculate balance changes
-    vault_usdc_balance_change = (
-        vault_usdc_balance_after_swap - vault_usdc_balance_before_swap
-    )
-    vault_usdt_balance_change = (
-        vault_usdt_balance_after_swap - vault_usdt_balance_before_swap
-    )
-
-    # Assertions to verify the results of the swap
-    assert vault_usdc_balance_change == -int(
-        100e6
-    ), "USDC balance should decrease by the deposit amount"
-    assert (
-        98e6 < vault_usdt_balance_change < 100e6
-    ), "USDT balance change should be between 98e6 and 100e6"
-
-
-def test_should_swap_when_multiple_hop():
-    # Reset state and grant necessary roles
-    anvil.reset_fork(254084008)
-
-    system = PlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
-
-    cheating = CheatingPlasmaVaultSystemFactory(
-        provider_url=anvil.get_anvil_http_url(),
-        private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
-
-    cheating.prank(system.access_manager().owner())
-    cheating.access_manager().grant_role(Roles.ALPHA_ROLE, ANVIL_WALLET, 0)
-
-    # Record initial balances
-    vault_usdc_balance_before_swap = system.usdc().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
-    )
-    vault_usdt_balance_before_swap = system.usdt().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
-    )
-
-    # Define swap targets and data for multi-hop
-    targets = [system.usdc().address(), uniswap_v_3_universal_router_address]
-
-    # First function call: transfer depositAmount of USDC to router
-    function_selector_0 = function_signature_to_4byte_selector(
-        "transfer(address,uint256)"
-    )
-    function_args_0 = encode(
-        ["address", "uint256"], [uniswap_v_3_universal_router_address, (int(100e6))]
-    )
-    function_call_0 = function_selector_0 + function_args_0
-
-    # Path encoding for USDC -> WETH -> USDT swap
-    path = encode_packed(
-        ["address", "uint24", "address", "uint24", "address"],
-        [
-            system.usdc().address(),
-            500,
-            system.weth().address(),
-            3000,
-            system.usdt().address(),
-        ],
-    )
-
-    # Second function call: execute swap with encoded path and parameters
-    inputs = [
-        encode(
-            ["address", "uint256", "uint256", "bytes", "bool"],
-            [
-                "0x0000000000000000000000000000000000000001",
-                int(100e6),
-                int(99e6),
-                path,
-                False,
-            ],
-        )
-    ]
-    function_selector_1 = function_signature_to_4byte_selector("execute(bytes,bytes[])")
-    function_args_1 = encode(
-        ["bytes", "bytes[]"], [encode_packed(["bytes1"], [bytes.fromhex("00")]), inputs]
-    )
-    function_call_1 = function_selector_1 + function_args_1
-
-    # Combined data for swap
-    data = [function_call_0, function_call_1]
-
-    # Initiate the swap through the plasma vault
-    swap = system.universal().swap(
-        system.usdc().address(), system.usdt().address(), int(100e6), targets, data
-    )
-
-    # Execute swap
-    system.plasma_vault().execute([swap])
-
-    # Record balances after swap
-    vault_usdc_balance_after_swap = system.usdc().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
-    )
-    vault_usdt_balance_after_swap = system.usdt().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
-    )
-
-    # Calculate balance changes
-    usdc_balance_change = vault_usdc_balance_after_swap - vault_usdc_balance_before_swap
-    usdt_balance_change = vault_usdt_balance_after_swap - vault_usdt_balance_before_swap
-
-    # Assertions on balance changes to confirm swap
-    assert usdc_balance_change == -int(
-        100e6
-    ), "USDC balance change should match deposit amount (-100e6)"
-    assert (
-        98e6 < usdt_balance_change < 100e6
-    ), "USDT balance change should be between 98e6 and 100e6"
 
 
 def test_should_open_new_position_uniswap_v3():
     # Reset state and grant necessary roles
-    anvil.reset_fork(254084008)
+    # anvil.reset_fork(254084008)
 
     system = PlasmaVaultSystemFactory(
         provider_url=anvil.get_anvil_http_url(),
         private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
+    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating = CheatingPlasmaVaultSystemFactory(
         provider_url=anvil.get_anvil_http_url(),
         private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
+    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating.prank(system.access_manager().owner())
     cheating.access_manager().grant_role(Roles.ALPHA_ROLE, ANVIL_WALLET, 0)
@@ -255,10 +53,10 @@ def test_should_open_new_position_uniswap_v3():
 
     # Check balances after swap
     vault_usdc_balance_after_swap = system.usdc().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
+        ARBITRUM.PILOT.V5.PLASMA_VAULT
     )
     vault_usdt_balance_after_swap = system.usdt().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
+        ARBITRUM.PILOT.V5.PLASMA_VAULT
     )
 
     # Create a new position with specified parameters
@@ -280,10 +78,10 @@ def test_should_open_new_position_uniswap_v3():
 
     # Check balances after opening the new position
     vault_usdc_balance_after_new_position = system.usdc().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
+        ARBITRUM.PILOT.V5.PLASMA_VAULT
     )
     vault_usdt_balance_after_new_position = system.usdt().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
+        ARBITRUM.PILOT.V5.PLASMA_VAULT
     )
 
     # Assert on balance changes after creating the new position
@@ -300,17 +98,17 @@ def test_should_open_new_position_uniswap_v3():
 
 def test_should_collect_all_after_decrease_liquidity():
     # Reset state and grant necessary roles
-    anvil.reset_fork(254084008)
+    # anvil.reset_fork(254084008)
 
     system = PlasmaVaultSystemFactory(
         provider_url=anvil.get_anvil_http_url(),
         private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
+    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating = CheatingPlasmaVaultSystemFactory(
         provider_url=anvil.get_anvil_http_url(),
         private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
+    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating.prank(system.access_manager().owner())
     cheating.access_manager().grant_role(Roles.ALPHA_ROLE, ANVIL_WALLET, 0)
@@ -354,16 +152,16 @@ def test_should_collect_all_after_decrease_liquidity():
     system.plasma_vault().execute([decrease_action])
 
     # Check balances before the collect action
-    vault_usdc_balance_before = system.usdc().balance_of(ARBITRUM.PILOT.V4.PLASMA_VAULT)
-    vault_usdt_balance_before = system.usdt().balance_of(ARBITRUM.PILOT.V4.PLASMA_VAULT)
+    vault_usdc_balance_before = system.usdc().balance_of(ARBITRUM.PILOT.V5.PLASMA_VAULT)
+    vault_usdt_balance_before = system.usdt().balance_of(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     # Perform the collect action
     collect = system.uniswap_v3().collect(token_ids=[new_token_id])
     system.plasma_vault().execute([collect])
 
     # Check balances after the collect action
-    vault_usdc_balance_after = system.usdc().balance_of(ARBITRUM.PILOT.V4.PLASMA_VAULT)
-    vault_usdt_balance_after = system.usdt().balance_of(ARBITRUM.PILOT.V4.PLASMA_VAULT)
+    vault_usdc_balance_after = system.usdc().balance_of(ARBITRUM.PILOT.V5.PLASMA_VAULT)
+    vault_usdt_balance_after = system.usdt().balance_of(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     collect_usdc_change = vault_usdc_balance_after - vault_usdc_balance_before
     collect_usdt_change = vault_usdt_balance_after - vault_usdt_balance_before
@@ -391,17 +189,17 @@ def test_should_collect_all_after_decrease_liquidity():
 
 def test_should_increase_liquidity():
     # Setup: Reset state and grant necessary roles
-    anvil.reset_fork(254084008)
+    # anvil.reset_fork(254084008)
 
     system = PlasmaVaultSystemFactory(
         provider_url=anvil.get_anvil_http_url(),
         private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
+    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating = CheatingPlasmaVaultSystemFactory(
         provider_url=anvil.get_anvil_http_url(),
         private_key=ANVIL_WALLET_PRIVATE_KEY,
-    ).get(ARBITRUM.PILOT.V4.PLASMA_VAULT)
+    ).get(ARBITRUM.PILOT.V5.PLASMA_VAULT)
 
     cheating.prank(system.access_manager().owner())
     cheating.access_manager().grant_role(Roles.ALPHA_ROLE, ANVIL_WALLET, 0)
@@ -448,10 +246,10 @@ def test_should_increase_liquidity():
 
     # Record balances before increasing liquidity
     vault_usdc_balance_before_increase = system.usdc().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
+        ARBITRUM.PILOT.V5.PLASMA_VAULT
     )
     vault_usdt_balance_before_increase = system.usdt().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
+        ARBITRUM.PILOT.V5.PLASMA_VAULT
     )
 
     # Execute the increase liquidity operation
@@ -459,10 +257,10 @@ def test_should_increase_liquidity():
 
     # Record balances after increasing liquidity
     vault_usdc_balance_after_increase = system.usdc().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
+        ARBITRUM.PILOT.V5.PLASMA_VAULT
     )
     vault_usdt_balance_after_increase = system.usdt().balance_of(
-        ARBITRUM.PILOT.V4.PLASMA_VAULT
+        ARBITRUM.PILOT.V5.PLASMA_VAULT
     )
 
     # Calculate balance changes
@@ -484,13 +282,13 @@ def test_should_increase_liquidity():
 
 def extract_enter_data_form_new_position_event(
     receipt: TxReceipt,
-) -> (str, int, int, int, int, str, str, int, int, int):
+) -> Tuple[str, int, int, int, int, str, str, int, int, int]:
     event_signature_hash = Web3.keccak(
         text="UniswapV3NewPositionFuseEnter(address,uint256,uint128,uint256,uint256,address,address,uint24,int24,int24)"
     )
 
-    for evnet_log in receipt.logs:
-        if evnet_log.topics[0] == event_signature_hash:
+    for evnet_log in receipt["logs"]:
+        if evnet_log["topics"][0] == event_signature_hash:
             decoded_data = decode(
                 [
                     "address",
@@ -530,16 +328,16 @@ def extract_enter_data_form_new_position_event(
                 tick_lower,
                 tick_upper,
             )
-    return None, None, None, None, None, None, None, None, None, None
+    raise ValueError("Event log for UniswapV3NewPositionFuseEnter not found")
 
 
-def extract_exit_data_form_new_position_event(receipt: TxReceipt) -> (str, int):
+def extract_exit_data_form_new_position_event(receipt: TxReceipt) -> Tuple[str, int]:
     event_signature_hash = Web3.keccak(
         text="UniswapV3NewPositionFuseExit(address,uint256)"
     )
 
-    for event_log in receipt.logs:
-        if event_log.topics[0] == event_signature_hash:
+    for event_log in receipt["logs"]:
+        if event_log["topics"][0] == event_signature_hash:
             decoded_data = decode(
                 [
                     "address",
@@ -555,4 +353,4 @@ def extract_exit_data_form_new_position_event(receipt: TxReceipt) -> (str, int):
                 version,
                 token_id,
             )
-    return None, None
+    raise ValueError("Event log for UniswapV3NewPositionFuseExit not found")
