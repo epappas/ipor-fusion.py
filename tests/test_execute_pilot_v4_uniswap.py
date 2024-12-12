@@ -41,10 +41,8 @@ def test_should_open_new_position_uniswap_v3():
     cheating.access_manager().grant_role(Roles.ALPHA_ROLE, ANVIL_WALLET, 0)
     cheating.access_manager().grant_role(Roles.WHITELIST_ROLE, whale_account, 0)
 
-    # Setup initial values
     amount = 1000_000000  # 1000 * 1e6
 
-    # Transfer USDC to user_one
     cheating.prank(whale_account)
     cheating.usdc().approve(system.plasma_vault().address(), amount)
     cheating.plasma_vault().deposit(amount, whale_account)
