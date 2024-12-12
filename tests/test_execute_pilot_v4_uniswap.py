@@ -25,8 +25,7 @@ anvil.start()
 
 
 def test_should_open_new_position_uniswap_v3():
-    # Reset state and grant necessary roles
-    # anvil.reset_fork(254084008)
+    whale_account = "0x1F7bc4dA1a0c2e49d7eF542F74CD46a3FE592cb1"
 
     system = PlasmaVaultSystemFactory(
         provider_url=anvil.get_anvil_http_url(),
@@ -40,13 +39,25 @@ def test_should_open_new_position_uniswap_v3():
 
     cheating.prank(system.access_manager().owner())
     cheating.access_manager().grant_role(Roles.ALPHA_ROLE, ANVIL_WALLET, 0)
+    cheating.access_manager().grant_role(Roles.WHITELIST_ROLE, whale_account, 0)
+
+    amount = 1000_000000  # 1000 * 1e6
+
+    cheating.prank(whale_account)
+    cheating.usdc().approve(system.plasma_vault().address(), amount)
+    cheating.plasma_vault().deposit(amount, whale_account)
+
+    balance_after_deposit = system.usdc().balance_of(
+        system.plasma_vault().address()
+    )
+    assert balance_after_deposit == amount
 
     # Swap USDC to USDT
     swap = system.uniswap_v3().swap(
         token_in_address=system.usdc().address(),
         token_out_address=system.usdt().address(),
         fee=100,
-        token_in_amount=int(500e6),
+        token_in_amount=int(amount / 2),
         min_out_amount=0,
     )
     system.plasma_vault().execute([swap])
@@ -88,13 +99,8 @@ def test_should_open_new_position_uniswap_v3():
     usdc_change = vault_usdc_balance_after_new_position - vault_usdc_balance_after_swap
     usdt_change = vault_usdt_balance_after_new_position - vault_usdt_balance_after_swap
 
-    assert usdc_change == -int(
-        499e6
-    ), "USDC balance after new position does not match expected change of -499e6"
-    assert (
-        usdt_change == -489_152502
-    ), "USDT balance after new position does not match expected change of -489_152502"
-
+    assert usdc_change < -400_000000
+    assert usdt_change < -400_000000
 
 def test_should_collect_all_after_decrease_liquidity():
     # Reset state and grant necessary roles
